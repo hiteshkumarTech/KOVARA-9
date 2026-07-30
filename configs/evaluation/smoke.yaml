@@ -1,0 +1,5 @@
+schema_version: 1
+name: smoke
+seeds: [20000, 20001, 20002, 20003, 20004]
+bootstrap_samples: 200
+bootstrap_confidence: 0.95

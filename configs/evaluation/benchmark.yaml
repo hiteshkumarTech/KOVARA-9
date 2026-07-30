@@ -1,0 +1,6 @@
+schema_version: 1
+name: held-out-benchmark
+seed_start: 20000
+num_episodes: 100
+bootstrap_samples: 2000
+bootstrap_confidence: 0.95
