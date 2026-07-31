@@ -6,12 +6,14 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import structlog
+import torch
 import typer
 
 from kovara9.agents.frontier import FrontierPolicy
 from kovara9.agents.policy import Policy, PolicyTransitionInfo
 from kovara9.agents.random import RandomPolicy
 from kovara9.config.loader import (
+    TrainingInputs,
     load_comparison_environment_configs,
     load_environment_config,
     load_evaluation_config,
@@ -24,7 +26,12 @@ from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.evaluation.runner import evaluate_policy
 from kovara9.reporting.artifacts import ArtifactWriter
 from kovara9.reporting.summaries import comparison_summary
+from kovara9.training.collector import SynchronousRolloutCollector
 from kovara9.training.config import TrainingConfig
+from kovara9.training.encoding import ActorObservationEncoder, CentralStateEncoder
+from kovara9.training.networks import CentralizedCritic, SharedActor
+from kovara9.training.runtime import configure_deterministic_algorithms, resolve_device
+from kovara9.training.seeds import ExperimentSeedStreams
 
 app = typer.Typer(
     name="kovara9",
@@ -78,6 +85,42 @@ def _abort(exc: KovaraError) -> None:
     raise typer.Exit(code=2) from exc
 
 
+def _make_rollout_collector(
+    inputs: TrainingInputs,
+    *,
+    steps: int,
+    device: torch.device,
+) -> SynchronousRolloutCollector:
+    probe = GridRescueParallelEnv(inputs.environment)
+    try:
+        actor_encoder = ActorObservationEncoder(probe.observation_space(probe.possible_agents[0]))
+        critic_encoder = CentralStateEncoder(probe.state_space)
+    finally:
+        probe.close()
+    streams = ExperimentSeedStreams(inputs.training.seed)
+    actor = SharedActor(
+        input_dim=actor_encoder.input_dim,
+        move_action_count=actor_encoder.move_action_count,
+        message_action_count=actor_encoder.message_action_count,
+        config=inputs.training.network,
+        seed=streams.actor_initialization,
+    )
+    critic = CentralizedCritic(
+        input_dim=critic_encoder.input_dim,
+        config=inputs.training.network,
+        seed=streams.critic_initialization,
+    )
+    return SynchronousRolloutCollector(
+        environment_factory=lambda: GridRescueParallelEnv(inputs.environment),
+        num_environments=inputs.training.num_environments,
+        rollout_length=steps,
+        actor=actor,
+        critic=critic,
+        root_seed=inputs.training.seed,
+        device=device,
+    )
+
+
 @config_app.command("validate")
 def validate_config(
     path: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
@@ -107,6 +150,49 @@ def validate_config(
         path=str(path),
         kind=kind,
         schema_version=config.schema_version,
+    )
+
+
+@app.command("rollout-smoke")
+def rollout_smoke(
+    training_config: Annotated[
+        Path,
+        typer.Option("--training-config", exists=True, dir_okay=False, readable=True),
+    ],
+    steps: Annotated[int | None, typer.Option("--steps", min=1)] = None,
+) -> None:
+    """Collect a bounded untrained rollout; do not optimize or save a model."""
+
+    collector: SynchronousRolloutCollector | None = None
+    try:
+        inputs = load_training_inputs(training_config)
+        rollout_steps = inputs.training.rollout_length if steps is None else steps
+        device = resolve_device(inputs.training.device)
+        configure_deterministic_algorithms(inputs.training.deterministic_torch)
+        collector = _make_rollout_collector(inputs, steps=rollout_steps, device=device)
+        collection = collector.collect(deterministic=False)
+    except KovaraError as exc:
+        _abort(exc)
+    finally:
+        if collector is not None:
+            collector.close()
+    batch = collection.batch
+    structlog.get_logger().info(
+        "rollout_smoke_complete",
+        benchmark=False,
+        training_performed=False,
+        seed=collection.root_seed,
+        device=str(device),
+        rollout_steps=rollout_steps,
+        num_environments=inputs.training.num_environments,
+        agent_order=list(batch.agent_order),
+        actor_shape=list(batch.actor_features.shape),
+        critic_shape=list(batch.critic_features.shape),
+        transition_count=(
+            rollout_steps * inputs.training.num_environments * len(batch.agent_order)
+        ),
+        completed_episodes=len(collection.completed_episodes),
+        reset_seeds=[list(seeds) for seeds in collection.reset_seeds],
     )
 
 

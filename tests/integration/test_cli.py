@@ -168,3 +168,40 @@ def test_cli_surfaces_invalid_configuration(tmp_path: Path) -> None:
     result = runner.invoke(app, ["config", "validate", str(invalid)])
     assert result.exit_code == 2
     assert "command_failed" in result.stdout
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("config", "steps", "environment_count", "agent_count"),
+    [
+        ("configs/training/mappo_smoke.yaml", 3, 1, 2),
+        ("configs/training/mappo_small.yaml", 2, 2, 3),
+    ],
+)
+def test_cli_rollout_smoke_reports_untrained_tensor_collection(
+    config: str,
+    steps: int,
+    environment_count: int,
+    agent_count: int,
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "--json-logs",
+            "rollout-smoke",
+            "--training-config",
+            config,
+            "--steps",
+            str(steps),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    record = json.loads(result.stdout.strip())
+    assert record["event"] == "rollout_smoke_complete"
+    assert record["training_performed"] is False
+    assert record["benchmark"] is False
+    assert record["seed"] == 0
+    assert record["device"] == "cpu"
+    assert record["actor_shape"][:3] == [steps, environment_count, agent_count]
+    assert record["critic_shape"][:2] == [steps, environment_count]
+    assert record["transition_count"] == steps * environment_count * agent_count
