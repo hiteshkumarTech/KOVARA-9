@@ -12,6 +12,8 @@ ppo_epochs: 4
 minibatch_size: 128
 discount_factor: 0.99
 gae_lambda: 0.95
+normalize_advantages: true
+advantage_normalization_epsilon: 0.00000001
 clipping_coefficient: 0.2
 entropy_coefficient: 0.01
 value_coefficient: 0.5

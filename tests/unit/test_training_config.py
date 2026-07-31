@@ -26,6 +26,8 @@ def _training_payload() -> dict[str, object]:
         "minibatch_size": 4,
         "discount_factor": 0.99,
         "gae_lambda": 0.95,
+        "normalize_advantages": True,
+        "advantage_normalization_epsilon": 1e-8,
         "clipping_coefficient": 0.2,
         "entropy_coefficient": 0.01,
         "value_coefficient": 0.5,
