@@ -15,6 +15,7 @@ from kovara9.config.loader import (
     load_comparison_environment_configs,
     load_environment_config,
     load_evaluation_config,
+    load_training_inputs,
 )
 from kovara9.config.models import EnvConfig, EvaluationConfig
 from kovara9.core.errors import ConfigurationError, KovaraError
@@ -23,6 +24,7 @@ from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.evaluation.runner import evaluate_policy
 from kovara9.reporting.artifacts import ArtifactWriter
 from kovara9.reporting.summaries import comparison_summary
+from kovara9.training.config import TrainingConfig
 
 app = typer.Typer(
     name="kovara9",
@@ -82,16 +84,22 @@ def validate_config(
 ) -> None:
     """Validate an environment or evaluation YAML configuration."""
 
-    config: EnvConfig | EvaluationConfig
+    config: EnvConfig | EvaluationConfig | TrainingConfig
     try:
         try:
             config = load_environment_config(path)
             kind = "environment"
         except KovaraError:
-            config = load_evaluation_config(path)
-            if config.comparison is not None:
-                load_comparison_environment_configs(config)
-            kind = "evaluation"
+            try:
+                evaluation = load_evaluation_config(path)
+            except KovaraError:
+                config = load_training_inputs(path).training
+                kind = "training"
+            else:
+                config = evaluation
+                if config.comparison is not None:
+                    load_comparison_environment_configs(config)
+                kind = "evaluation"
     except KovaraError as exc:
         _abort(exc)
     structlog.get_logger().info(

@@ -7,7 +7,7 @@ name = "kovara9"
 version = "0.1.0"
 description = "A reproducible research platform for cooperative embodied multi-agent learning."
 readme = "README.md"
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<3.13"
 license = { file = "LICENSE" }
 authors = [{ name = "KOVARA-9 Contributors" }]
 classifiers = [
@@ -15,7 +15,6 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Typing :: Typed",
 ]
@@ -26,6 +25,7 @@ dependencies = [
   "pydantic>=2.11,<3",
   "pyyaml>=6,<7",
   "structlog>=25,<26",
+  "torch>=2.7,<3",
   "typer>=0.16,<1",
 ]
 

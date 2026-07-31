@@ -45,3 +45,15 @@ be reported without the corresponding run artifacts.
 
 Coverage and duplicated exploration include observations from the final acting transition, even
 when termination removes every agent from the Parallel API's live-agent list.
+
+## v0.1 training configuration
+
+Training YAML owns the environment and validation-suite paths, network dimensions, rollout and PPO
+schedule, optimizer coefficients, checkpoint/evaluation frequencies, device policy, determinism
+mode, and training seed. Paths resolve relative to the owning YAML. Cross-validation requires the
+training seed to belong to the declared train partition and periodic evaluation to select the
+validation partition. Total joint environment steps and checkpoint/evaluation frequencies align to
+complete rollout boundaries; minibatches divide the resulting agent-transition batch exactly.
+
+The smoke configuration is a pipeline test only. It is not evidence of learning quality and cannot
+be included in v0.1 scientific results.

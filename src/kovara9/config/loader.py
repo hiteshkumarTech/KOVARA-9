@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,16 @@ from pydantic import BaseModel, ValidationError
 
 from kovara9.config.models import ComparisonConfig, EnvConfig, EvaluationConfig
 from kovara9.core.errors import ConfigurationError
+from kovara9.training.config import TrainingConfig
+
+
+@dataclass(frozen=True, slots=True)
+class TrainingInputs:
+    """Validated training configuration and its referenced experiment inputs."""
+
+    training: TrainingConfig
+    environment: EnvConfig
+    validation: EvaluationConfig
 
 
 def _load[ConfigT: BaseModel](path: Path, model_type: type[ConfigT]) -> ConfigT:
@@ -97,3 +108,48 @@ def load_comparison_environment_configs(
             "reference and held-out environment configurations are semantically identical"
         )
     return reference, held_out
+
+
+def load_training_config(path: Path) -> TrainingConfig:
+    """Load training configuration and resolve owned paths portably."""
+
+    config = _load(path, TrainingConfig)
+    base_directory = path.resolve().parent
+    return config.model_copy(
+        update={
+            "environment_config": _resolve_config_path(
+                config.environment_config,
+                base_directory,
+            ),
+            "validation_config": _resolve_config_path(
+                config.validation_config,
+                base_directory,
+            ),
+        }
+    )
+
+
+def load_training_inputs(path: Path) -> TrainingInputs:
+    """Load and cross-validate one complete training experiment definition."""
+
+    training = load_training_config(path)
+    environment = load_environment_config(training.environment_config)
+    validation = load_evaluation_config(training.validation_config)
+    if validation.comparison is not None:
+        raise ConfigurationError("training validation configuration cannot declare a comparison")
+    if validation.seed_partition != "validation":
+        raise ConfigurationError(
+            "training validation configuration must select the validation seed partition"
+        )
+    if training.seed not in validation.seed_partitions.train.resolved_seeds:
+        raise ConfigurationError(
+            f"training seed {training.seed} is outside the declared train seed partition"
+        )
+    rollout_transitions = training.rollout_environment_steps * environment.num_agents
+    if training.minibatch_size > rollout_transitions:
+        raise ConfigurationError(
+            "minibatch_size cannot exceed rollout_length * num_environments * num_agents"
+        )
+    if rollout_transitions % training.minibatch_size != 0:
+        raise ConfigurationError("rollout agent transitions must be divisible by minibatch_size")
+    return TrainingInputs(training, environment, validation)

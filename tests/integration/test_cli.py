@@ -21,6 +21,12 @@ def test_cli_help_and_validation() -> None:
     )
     assert valid.exit_code == 0
     assert "configuration_valid" in valid.stdout
+    training = runner.invoke(
+        app,
+        ["config", "validate", "configs/training/mappo_smoke.yaml"],
+    )
+    assert training.exit_code == 0
+    assert "kind=training" in training.stdout
 
 
 @pytest.mark.integration
