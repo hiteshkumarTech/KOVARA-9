@@ -20,7 +20,7 @@ from kovara9.config.loader import (
     load_training_inputs,
 )
 from kovara9.config.models import EnvConfig, EvaluationConfig
-from kovara9.core.errors import ConfigurationError, KovaraError
+from kovara9.core.errors import ConfigurationError, KovaraError, NumericalError, TrainingError
 from kovara9.core.seeding import derive_seed
 from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.evaluation.runner import evaluate_policy
@@ -29,7 +29,9 @@ from kovara9.reporting.summaries import comparison_summary
 from kovara9.training.collector import SynchronousRolloutCollector
 from kovara9.training.config import TrainingConfig
 from kovara9.training.encoding import ActorObservationEncoder, CentralStateEncoder
+from kovara9.training.gae import compute_gae
 from kovara9.training.networks import CentralizedCritic, SharedActor
+from kovara9.training.optimization import PPOOptimizer
 from kovara9.training.runtime import configure_deterministic_algorithms, resolve_device
 from kovara9.training.seeds import ExperimentSeedStreams
 
@@ -193,6 +195,104 @@ def rollout_smoke(
         ),
         completed_episodes=len(collection.completed_episodes),
         reset_seeds=[list(seeds) for seeds in collection.reset_seeds],
+    )
+
+
+@app.command("update-smoke")
+def update_smoke(
+    training_config: Annotated[
+        Path,
+        typer.Option("--training-config", exists=True, dir_okay=False, readable=True),
+    ],
+) -> None:
+    """Run one bounded optimization smoke; do not save or claim a learned policy."""
+
+    collector: SynchronousRolloutCollector | None = None
+    try:
+        inputs = load_training_inputs(training_config)
+        device = resolve_device(inputs.training.device)
+        configure_deterministic_algorithms(inputs.training.deterministic_torch)
+        collector = _make_rollout_collector(
+            inputs,
+            steps=inputs.training.rollout_length,
+            device=device,
+        )
+        collection = collector.collect(deterministic=False)
+        gae = compute_gae(
+            collection.batch,
+            gamma=inputs.training.discount_factor,
+            gae_lambda=inputs.training.gae_lambda,
+            normalize_advantages=inputs.training.normalize_advantages,
+            normalization_epsilon=inputs.training.advantage_normalization_epsilon,
+        )
+        actor_before = tuple(
+            parameter.detach().clone() for parameter in collector.actor.parameters()
+        )
+        critic_before = tuple(
+            parameter.detach().clone() for parameter in collector.critic.parameters()
+        )
+        streams = ExperimentSeedStreams(inputs.training.seed)
+        update = PPOOptimizer(
+            actor=collector.actor,
+            critic=collector.critic,
+            config=inputs.training,
+            shuffle_seed=streams.optimizer_shuffle,
+        ).update(collection.batch, gae)
+        actor_changed = any(
+            not torch.equal(before, after)
+            for before, after in zip(
+                actor_before,
+                collector.actor.parameters(),
+                strict=True,
+            )
+        )
+        critic_changed = any(
+            not torch.equal(before, after)
+            for before, after in zip(
+                critic_before,
+                collector.critic.parameters(),
+                strict=True,
+            )
+        )
+        parameters_finite = all(
+            bool(torch.isfinite(parameter).all())
+            for parameter in (*collector.actor.parameters(), *collector.critic.parameters())
+        )
+        if not actor_changed or not critic_changed:
+            raise TrainingError(
+                "optimization smoke did not change both actor and critic parameters"
+            )
+        if not parameters_finite:
+            raise NumericalError("optimization smoke produced non-finite model parameters")
+    except KovaraError as exc:
+        _abort(exc)
+    finally:
+        if collector is not None:
+            collector.close()
+    structlog.get_logger().info(
+        "optimization_smoke_complete",
+        optimization_smoke_test=True,
+        benchmark=False,
+        useful_policy_learned=False,
+        full_training_run=False,
+        checkpoint_saved=False,
+        seed=inputs.training.seed,
+        optimizer_shuffle_seed=streams.optimizer_shuffle,
+        device=str(device),
+        rollout_steps=inputs.training.rollout_length,
+        valid_sample_count=update.valid_sample_count,
+        minibatch_count=update.minibatch_count,
+        actor_parameters_changed=actor_changed,
+        critic_parameters_changed=critic_changed,
+        parameters_finite=parameters_finite,
+        total_loss=update.total_loss,
+        policy_loss=update.policy_loss,
+        value_loss=update.value_loss,
+        entropy=update.entropy,
+        approximate_kl=update.approximate_kl,
+        clip_fraction=update.clip_fraction,
+        maximum_pre_clip_gradient_norm=update.maximum_pre_clip_gradient_norm,
+        maximum_post_clip_gradient_norm=update.maximum_post_clip_gradient_norm,
     )
 
 

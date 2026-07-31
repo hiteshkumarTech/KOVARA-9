@@ -205,3 +205,31 @@ def test_cli_rollout_smoke_reports_untrained_tensor_collection(
     assert record["actor_shape"][:3] == [steps, environment_count, agent_count]
     assert record["critic_shape"][:2] == [steps, environment_count]
     assert record["transition_count"] == steps * environment_count * agent_count
+
+
+@pytest.mark.integration
+def test_cli_update_smoke_changes_finite_actor_and_critic_parameters() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "--json-logs",
+            "update-smoke",
+            "--training-config",
+            "configs/training/mappo_smoke.yaml",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    record = json.loads(result.stdout.strip())
+    assert record["event"] == "optimization_smoke_complete"
+    assert record["optimization_smoke_test"] is True
+    assert record["benchmark"] is False
+    assert record["useful_policy_learned"] is False
+    assert record["full_training_run"] is False
+    assert record["checkpoint_saved"] is False
+    assert record["actor_parameters_changed"] is True
+    assert record["critic_parameters_changed"] is True
+    assert record["parameters_finite"] is True
+    assert record["device"] == "cpu"
+    assert record["valid_sample_count"] == 16
+    assert record["minibatch_count"] == 2
+    assert record["maximum_post_clip_gradient_norm"] <= 0.5
