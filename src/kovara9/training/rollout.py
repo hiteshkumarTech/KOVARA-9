@@ -8,6 +8,7 @@ import torch
 from torch import Tensor
 
 from kovara9.core.errors import NumericalError, TrainingError
+from kovara9.core.types import AgentId
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,7 +17,7 @@ class RolloutSpec:
 
     rollout_length: int
     num_environments: int
-    num_agents: int
+    agent_order: tuple[AgentId, ...]
     actor_feature_dim: int
     critic_feature_dim: int
     move_action_count: int
@@ -24,8 +25,20 @@ class RolloutSpec:
 
     def __post_init__(self) -> None:
         for field in fields(self):
+            if field.name == "agent_order":
+                continue
             if getattr(self, field.name) <= 0:
                 raise ValueError(f"{field.name} must be positive")
+        if not self.agent_order:
+            raise ValueError("agent_order cannot be empty")
+        if len(set(self.agent_order)) != len(self.agent_order):
+            raise ValueError("agent_order must contain unique agent identifiers")
+
+    @property
+    def num_agents(self) -> int:
+        """Return the fixed homogeneous agent-slot count."""
+
+        return len(self.agent_order)
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,11 +53,17 @@ class RolloutStep:
     message_actions: Tensor
     move_log_probabilities: Tensor
     message_log_probabilities: Tensor
+    joint_log_probabilities: Tensor
     rewards: Tensor
     values: Tensor
+    next_values: Tensor
     terminated: Tensor
     truncated: Tensor
+    episode_starts: Tensor
     active_agents: Tensor
+    communication_rejections: Tensor
+    environment_ids: Tensor
+    transition_ids: Tensor
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,12 +78,18 @@ class RolloutBatch:
     message_actions: Tensor
     move_log_probabilities: Tensor
     message_log_probabilities: Tensor
+    joint_log_probabilities: Tensor
     rewards: Tensor
     values: Tensor
+    next_values: Tensor
     terminated: Tensor
     truncated: Tensor
+    episode_starts: Tensor
     active_agents: Tensor
-    next_values: Tensor
+    communication_rejections: Tensor
+    environment_ids: Tensor
+    transition_ids: Tensor
+    agent_order: tuple[AgentId, ...]
 
 
 class RolloutBuffer:
@@ -104,11 +129,17 @@ class RolloutBuffer:
         self.message_log_probabilities = torch.zeros(
             agent_shape, dtype=torch.float32, device=device
         )
+        self.joint_log_probabilities = torch.zeros(agent_shape, dtype=torch.float32, device=device)
         self.rewards = torch.zeros(environment_shape, dtype=torch.float32, device=device)
         self.values = torch.zeros(environment_shape, dtype=torch.float32, device=device)
+        self.next_values = torch.zeros(environment_shape, dtype=torch.float32, device=device)
         self.terminated = torch.zeros(environment_shape, dtype=torch.bool, device=device)
         self.truncated = torch.zeros(environment_shape, dtype=torch.bool, device=device)
+        self.episode_starts = torch.zeros(environment_shape, dtype=torch.bool, device=device)
         self.active_agents = torch.zeros(agent_shape, dtype=torch.bool, device=device)
+        self.communication_rejections = torch.zeros(agent_shape, dtype=torch.bool, device=device)
+        self.environment_ids = torch.zeros(environment_shape, dtype=torch.int64, device=device)
+        self.transition_ids = torch.zeros(environment_shape, dtype=torch.int64, device=device)
         self._size = 0
 
     @property
@@ -136,11 +167,17 @@ class RolloutBuffer:
             "message_actions",
             "move_log_probabilities",
             "message_log_probabilities",
+            "joint_log_probabilities",
             "rewards",
             "values",
+            "next_values",
             "terminated",
             "truncated",
+            "episode_starts",
             "active_agents",
+            "communication_rejections",
+            "environment_ids",
+            "transition_ids",
         ):
             destination = getattr(self, name)[index]
             source = getattr(step, name)
@@ -154,21 +191,13 @@ class RolloutBuffer:
             destination.copy_(converted)
         self._size += 1
 
-    def as_batch(self, next_values: Tensor) -> RolloutBatch:
-        """Return a complete rollout after validating critic bootstrap values."""
+    def as_batch(self) -> RolloutBatch:
+        """Return a complete rollout with per-transition bootstrap values."""
 
         if not self.full:
             raise TrainingError(
                 f"rollout buffer is incomplete: {self._size}/{self.spec.rollout_length} steps"
             )
-        expected_shape = (self.spec.num_environments,)
-        if next_values.shape != expected_shape:
-            raise TrainingError(
-                f"next_values must have shape {expected_shape}, got {tuple(next_values.shape)}"
-            )
-        converted_next_values = next_values.to(device=self.device, dtype=torch.float32)
-        if not bool(torch.isfinite(converted_next_values).all()):
-            raise NumericalError("next_values contains NaN or infinite values")
         return RolloutBatch(
             actor_features=self.actor_features.clone(),
             critic_features=self.critic_features.clone(),
@@ -178,12 +207,18 @@ class RolloutBuffer:
             message_actions=self.message_actions.clone(),
             move_log_probabilities=self.move_log_probabilities.clone(),
             message_log_probabilities=self.message_log_probabilities.clone(),
+            joint_log_probabilities=self.joint_log_probabilities.clone(),
             rewards=self.rewards.clone(),
             values=self.values.clone(),
+            next_values=self.next_values.clone(),
             terminated=self.terminated.clone(),
             truncated=self.truncated.clone(),
+            episode_starts=self.episode_starts.clone(),
             active_agents=self.active_agents.clone(),
-            next_values=converted_next_values.clone(),
+            communication_rejections=self.communication_rejections.clone(),
+            environment_ids=self.environment_ids.clone(),
+            transition_ids=self.transition_ids.clone(),
+            agent_order=self.spec.agent_order,
         )
 
     def reset(self) -> None:

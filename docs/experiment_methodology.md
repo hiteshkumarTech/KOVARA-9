@@ -57,3 +57,23 @@ complete rollout boundaries; minibatches divide the resulting agent-transition b
 
 The smoke configuration is a pipeline test only. It is not evidence of learning quality and cannot
 be included in v0.1 scientific results.
+
+## Day 2 rollout reproducibility
+
+One root training seed is expanded with BLAKE2b-based semantic labels; persistent seeds never use
+Python's process-randomized `hash()`. The current streams are `network/actor`, `network/critic`,
+`policy/sampling`, `environment/<environment-id>/episode/<episode-index>`, and
+`evaluation/<evaluation-index>`. An environment's next reset seed therefore depends only on its
+stable numeric slot and local episode counter, not worker scheduling or the order in which other
+environments finish.
+
+Rollouts are synchronous and environment-major. Actor selection receives only encoded local
+observations and the movement/communication masks. Critic evaluation receives only the separately
+encoded centralized state. Training-mode action samples consume the explicit policy generator;
+evaluation-mode actions use masked argmax and consume no RNG state. Recreating the networks,
+collector, and environments from the same root seed reproduces the collected tensors and exact reset
+seed history within the recorded software/platform determinism boundary.
+
+The `rollout-smoke` command reports tensor shapes, transition count, completed episode count, root
+seed, device, and reset seeds. It performs no optimization, writes no checkpoint, and is not a
+benchmark. GAE, PPO losses, gradient updates, and learning claims remain outside Day 2.
