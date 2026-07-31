@@ -22,6 +22,7 @@ PARTITIONS = SeedPartitionsConfig(
     validation=SeedRangeConfig(start=10_000, count=1_000),
     test=SeedRangeConfig(start=20_000, count=1_000),
 )
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _evaluation(name: str = "artifact") -> EvaluationConfig:
@@ -64,7 +65,7 @@ def test_artifacts_are_complete_parseable_and_collision_safe(
     output = tmp_path / "run"
     evaluation = _evaluation()
     result = _result(True)
-    ArtifactWriter(output, project_root=tmp_path).write(
+    ArtifactWriter(output, project_root=PROJECT_ROOT).write(
         env_config=easy_config,
         evaluation_config=evaluation,
         result=result,
