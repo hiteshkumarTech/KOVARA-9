@@ -298,6 +298,34 @@ def test_optimizer_rejects_non_finite_model_inputs(
         )
 
 
+def test_optimizer_rejects_incompatible_rollout_and_gae_shapes(easy_config: EnvConfig) -> None:
+    actor, critic, config, rollout, gae = _optimization_case(easy_config)
+    optimizer = PPOOptimizer(actor=actor, critic=critic, config=config, shuffle_seed=1)
+    with pytest.raises(TrainingError, match="critic rollout features"):
+        optimizer.update(replace(rollout, critic_features=rollout.critic_features[0]), gae)
+    with pytest.raises(TrainingError, match="move_actions"):
+        optimizer.update(replace(rollout, move_actions=rollout.move_actions[0]), gae)
+    with pytest.raises(TrainingError, match="move_action_masks"):
+        optimizer.update(
+            replace(rollout, move_action_masks=rollout.move_action_masks[0]),
+            gae,
+        )
+    with pytest.raises(TrainingError, match="GAE advantages"):
+        optimizer.update(rollout, replace(gae, advantages=gae.advantages[0]))
+    mismatched_valid = gae.valid_samples.clone()
+    mismatched_valid[0, 0, 0] = False
+    with pytest.raises(TrainingError, match="incompatible with rollout"):
+        optimizer.update(rollout, replace(gae, valid_samples=mismatched_valid))
+
+
+def test_optimizer_rejects_non_finite_initial_parameters(easy_config: EnvConfig) -> None:
+    actor, critic, config, _rollout, _gae = _optimization_case(easy_config)
+    with torch.no_grad():
+        next(actor.parameters()).reshape(-1)[0] = float("nan")
+    with pytest.raises(NumericalError, match="non-finite model parameters"):
+        PPOOptimizer(actor=actor, critic=critic, config=config, shuffle_seed=1)
+
+
 def test_optimizer_rejects_empty_and_inconsistent_batches(easy_config: EnvConfig) -> None:
     actor, critic, config, rollout, gae = _optimization_case(easy_config)
     empty_rollout = replace(rollout, active_agents=torch.zeros_like(rollout.active_agents))

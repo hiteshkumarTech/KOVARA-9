@@ -137,6 +137,31 @@ def test_empty_valid_samples_and_non_finite_inputs_are_rejected() -> None:
 
 
 @pytest.mark.parametrize(
+    ("update", "match"),
+    [
+        ({"active_agents": torch.ones((1, 2), dtype=torch.bool)}, "active_agents"),
+        ({"rewards": torch.ones((2, 1))}, "rewards must have shape"),
+        ({"terminated": torch.zeros((1, 1))}, "terminated must use bool"),
+        ({"values": torch.zeros((1, 1), dtype=torch.int64)}, "values must use a floating"),
+        (
+            {
+                "terminated": torch.ones((1, 1), dtype=torch.bool),
+                "truncated": torch.ones((1, 1), dtype=torch.bool),
+            },
+            "both terminated and truncated",
+        ),
+    ],
+)
+def test_gae_rejects_inconsistent_rollout_contracts(
+    update: dict[str, torch.Tensor],
+    match: str,
+) -> None:
+    batch = _batch(rewards=[1.0], values=[0.0], next_values=[0.0])
+    with pytest.raises(TrainingError, match=match):
+        _compute(replace(batch, **update))
+
+
+@pytest.mark.parametrize(
     ("gamma", "gae_lambda", "epsilon", "match"),
     [
         (0.0, 0.9, 1e-8, "gamma"),

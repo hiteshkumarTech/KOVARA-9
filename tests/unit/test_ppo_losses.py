@@ -233,6 +233,48 @@ def test_loss_rejects_empty_or_non_finite_samples() -> None:
             clipping_coefficient=0.2,
         )
 
+
+def test_surrogate_rejects_invalid_shapes_dtypes_and_empty_masks() -> None:
+    with pytest.raises(ValueError, match="clipping_coefficient"):
+        clipped_surrogate_loss(
+            new_log_probabilities=torch.zeros(1),
+            old_log_probabilities=torch.zeros(1),
+            advantages=torch.ones(1),
+            valid_samples=torch.ones(1, dtype=torch.bool),
+            clipping_coefficient=0.0,
+        )
+    with pytest.raises(TrainingError, match="mismatch"):
+        clipped_surrogate_loss(
+            new_log_probabilities=torch.zeros(2),
+            old_log_probabilities=torch.zeros(1),
+            advantages=torch.ones(2),
+            valid_samples=torch.ones(2, dtype=torch.bool),
+            clipping_coefficient=0.2,
+        )
+    with pytest.raises(TrainingError, match="bool"):
+        clipped_surrogate_loss(
+            new_log_probabilities=torch.zeros(1),
+            old_log_probabilities=torch.zeros(1),
+            advantages=torch.ones(1),
+            valid_samples=torch.ones(1),
+            clipping_coefficient=0.2,
+        )
+    with pytest.raises(TrainingError, match="at least one"):
+        clipped_surrogate_loss(
+            new_log_probabilities=torch.zeros(1),
+            old_log_probabilities=torch.zeros(1),
+            advantages=torch.ones(1),
+            valid_samples=torch.zeros(1, dtype=torch.bool),
+            clipping_coefficient=0.2,
+        )
+    with pytest.raises(TrainingError, match="floating-point"):
+        clipped_surrogate_loss(
+            new_log_probabilities=torch.zeros(1),
+            old_log_probabilities=torch.zeros(1),
+            advantages=torch.ones(1, dtype=torch.int64),
+            valid_samples=torch.ones(1, dtype=torch.bool),
+            clipping_coefficient=0.2,
+        )
     with pytest.raises(NumericalError, match="probability ratios"):
         clipped_surrogate_loss(
             new_log_probabilities=torch.tensor([1_000.0]),
@@ -241,3 +283,77 @@ def test_loss_rejects_empty_or_non_finite_samples() -> None:
             valid_samples=torch.ones(1, dtype=torch.bool),
             clipping_coefficient=0.2,
         )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("actor_features", torch.zeros((2, 4)), "actor_features"),
+        ("critic_features", torch.zeros((2, 3)), "critic_features"),
+        ("move_action_masks", torch.ones((2, 3), dtype=torch.bool), "movement masks"),
+        ("message_action_masks", torch.ones((2, 3), dtype=torch.bool), "message masks"),
+        ("advantages", torch.ones(1), "advantages must have shape"),
+        ("move_action_masks", torch.ones((2, 2)), "move_action_masks must use bool"),
+        ("move_actions", torch.zeros(2), "move_actions must use int64"),
+    ],
+)
+def test_mappo_loss_rejects_incompatible_minibatch_contracts(
+    field: str,
+    value: torch.Tensor,
+    match: str,
+) -> None:
+    actor, critic = _networks()
+    batch = _minibatch(actor, critic)
+    with pytest.raises(TrainingError, match=match):
+        mappo_style_loss(
+            actor=actor,
+            critic=critic,
+            batch=replace(batch, **{field: value}),
+            clipping_coefficient=0.2,
+            entropy_coefficient=0.01,
+            value_coefficient=0.5,
+            explained_variance_epsilon=1e-8,
+        )
+
+
+def test_mappo_loss_rejects_stale_action_masks_and_invalid_coefficients() -> None:
+    actor, critic = _networks()
+    batch = _minibatch(actor, critic)
+    stale_move_mask = batch.move_action_masks.clone()
+    stale_move_mask[0] = torch.tensor([False, True])
+    with pytest.raises(TrainingError, match="rejected by the mask"):
+        mappo_style_loss(
+            actor=actor,
+            critic=critic,
+            batch=replace(batch, move_action_masks=stale_move_mask),
+            clipping_coefficient=0.2,
+            entropy_coefficient=0.01,
+            value_coefficient=0.5,
+            explained_variance_epsilon=1e-8,
+        )
+    for coefficients, match in (
+        ({"entropy_coefficient": -0.1}, "entropy_coefficient"),
+        ({"value_coefficient": -0.1}, "value_coefficient"),
+        ({"explained_variance_epsilon": 0.0}, "explained_variance_epsilon"),
+    ):
+        arguments = {
+            "actor": actor,
+            "critic": critic,
+            "batch": batch,
+            "clipping_coefficient": 0.2,
+            "entropy_coefficient": 0.01,
+            "value_coefficient": 0.5,
+            "explained_variance_epsilon": 1e-8,
+        }
+        arguments.update(coefficients)
+        with pytest.raises(ValueError, match=match):
+            mappo_style_loss(**arguments)
+
+
+def test_minibatch_selection_rejects_non_vector_integer_indices() -> None:
+    actor, critic = _networks()
+    batch = _minibatch(actor, critic)
+    with pytest.raises(TrainingError, match="one-dimensional int64"):
+        batch.select(torch.zeros((1, 1), dtype=torch.int64))
+    with pytest.raises(TrainingError, match="one-dimensional int64"):
+        batch.select(torch.zeros(1))
