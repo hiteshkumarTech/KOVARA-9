@@ -1,0 +1,25 @@
+schema_version: 1
+algorithm: shared-actor-centralized-critic-ppo
+environment_config: ../environments/grid_rescue_medium.yaml
+validation_config: ../evaluation/training_validation.yaml
+network:
+  actor_hidden_sizes: [256, 256]
+  critic_hidden_sizes: [256, 256]
+  activation: tanh
+rollout_length: 128
+num_environments: 8
+ppo_epochs: 8
+minibatch_size: 512
+discount_factor: 0.99
+gae_lambda: 0.95
+clipping_coefficient: 0.2
+entropy_coefficient: 0.01
+value_coefficient: 0.5
+maximum_gradient_norm: 0.5
+learning_rate: 0.0003
+total_environment_steps: 1048576
+checkpoint_frequency: 65536
+evaluation_frequency: 65536
+device: auto
+deterministic_torch: true
+seed: 0

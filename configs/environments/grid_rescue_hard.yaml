@@ -1,0 +1,20 @@
+schema_version: 1
+environment_id: KovaraGridRescue-v0
+width: 16
+height: 16
+num_agents: 4
+obstacle_density: 0.25
+observation_radius: 2
+num_targets: 6
+max_steps: 300
+communication:
+  enabled: true
+  vocabulary_size: 4
+  budget_per_agent: 12
+generation:
+  max_attempts: 128
+reward:
+  target_recovery: 1.0
+  success_bonus: 5.0
+  step_penalty: -0.01
+  message_penalty: -0.001
