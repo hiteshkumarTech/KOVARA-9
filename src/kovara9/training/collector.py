@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -405,7 +406,7 @@ class SynchronousRolloutCollector:
         if not rewards:
             raise TrainingError("environment returned no reward for an acting transition")
         values = tuple(float(reward) for reward in rewards.values())
-        if not all(torch.isfinite(torch.tensor(value)) for value in values):
+        if not all(math.isfinite(value) for value in values):
             raise NumericalError("environment returned a NaN or infinite reward")
         if any(value != values[0] for value in values[1:]):
             raise TrainingError("v0.1 collector requires one shared team reward")

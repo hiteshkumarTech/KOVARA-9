@@ -46,7 +46,7 @@ def _masked_factor(name: str, logits: Tensor, mask: Tensor) -> _MaskedFactor:
         raise TrainingError(f"{name} logits must include batch and action dimensions")
     if not logits.is_floating_point():
         raise TrainingError(f"{name} logits must use a floating-point dtype")
-    if mask.dtype is not torch.bool:
+    if mask.dtype != torch.bool:
         raise TrainingError(f"{name} action mask must use bool dtype")
     if mask.shape != logits.shape:
         raise TrainingError(
@@ -76,7 +76,7 @@ def _validated_factor_actions(name: str, factor: _MaskedFactor, actions: Tensor)
         raise TrainingError(
             f"{name} actions must have shape {tuple(expected_shape)}, got {tuple(actions.shape)}"
         )
-    if actions.dtype is not torch.int64:
+    if actions.dtype != torch.int64:
         raise TrainingError(f"{name} actions must use int64 dtype")
     if actions.device != factor.probabilities.device:
         raise TrainingError(f"{name} actions and probabilities must use the same device")

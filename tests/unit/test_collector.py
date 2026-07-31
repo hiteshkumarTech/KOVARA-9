@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+import pytest
 import torch
 
 from kovara9.config.models import CommunicationConfig, EnvConfig
@@ -7,7 +8,13 @@ from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.training.collector import RolloutCollection, SynchronousRolloutCollector
 from kovara9.training.config import NetworkConfig
 from kovara9.training.encoding import ActorObservationEncoder, CentralStateEncoder
-from kovara9.training.networks import CentralizedCritic, SharedActor
+from kovara9.training.networks import (
+    ActorInput,
+    ActorLogits,
+    CentralizedCritic,
+    CriticInput,
+    SharedActor,
+)
 from kovara9.training.seeds import ExperimentSeedStreams
 
 
@@ -209,13 +216,64 @@ def test_terminal_boundaries_reset_with_next_per_environment_seed(
 def test_rollout_is_finite_and_keeps_actor_and_critic_features_separate(
     easy_config: EnvConfig,
 ) -> None:
-    batch = _collect(easy_config, root_seed=25, rollout_length=3).batch
-    floating = [
-        tensor
-        for tensor in _tensor_fields(_collect(easy_config, root_seed=25))
-        if tensor.is_floating_point()
-    ]
+    collection = _collect(easy_config, root_seed=25, rollout_length=3)
+    batch = collection.batch
+    floating = [tensor for tensor in _tensor_fields(collection) if tensor.is_floating_point()]
     assert all(bool(torch.isfinite(tensor).all()) for tensor in floating)
     assert batch.actor_features.ndim == 4
     assert batch.critic_features.ndim == 3
     assert batch.actor_features.shape[-1] != batch.critic_features.shape[-1]
+
+
+def test_collector_enforces_actor_and_critic_runtime_boundaries(
+    easy_config: EnvConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    probe = GridRescueParallelEnv(easy_config)
+    actor_encoder = ActorObservationEncoder(probe.observation_space(probe.possible_agents[0]))
+    critic_encoder = CentralStateEncoder(probe.state_space)
+    actor = SharedActor(
+        input_dim=actor_encoder.input_dim,
+        move_action_count=actor_encoder.move_action_count,
+        message_action_count=actor_encoder.message_action_count,
+        config=_network_config(),
+        seed=1,
+    )
+    critic = CentralizedCritic(
+        input_dim=critic_encoder.input_dim,
+        config=_network_config(),
+        seed=2,
+    )
+    probe.close()
+    actor_inputs: list[ActorInput] = []
+    critic_inputs: list[CriticInput] = []
+    original_actor_forward = actor.forward
+    original_critic_forward = critic.forward
+
+    def actor_forward(inputs: ActorInput) -> ActorLogits:
+        actor_inputs.append(inputs)
+        return original_actor_forward(inputs)
+
+    def critic_forward(inputs: CriticInput) -> torch.Tensor:
+        critic_inputs.append(inputs)
+        return original_critic_forward(inputs)
+
+    monkeypatch.setattr(actor, "forward", actor_forward)
+    monkeypatch.setattr(critic, "forward", critic_forward)
+    collector = SynchronousRolloutCollector(
+        environment_factory=lambda: GridRescueParallelEnv(easy_config),
+        num_environments=1,
+        rollout_length=2,
+        actor=actor,
+        critic=critic,
+        root_seed=3,
+        device=torch.device("cpu"),
+    )
+    try:
+        collector.collect()
+    finally:
+        collector.close()
+    assert len(actor_inputs) == 2
+    assert len(critic_inputs) == 4
+    assert all(inputs.features.shape[0] == easy_config.num_agents for inputs in actor_inputs)
+    assert all(inputs.features.shape[0] == 1 for inputs in critic_inputs)

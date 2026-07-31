@@ -169,3 +169,27 @@ def test_different_sampling_seeds_can_select_different_actions() -> None:
         generator=make_torch_generator(2, torch.device("cpu")),
     )
     assert not torch.equal(first.statistics.move_actions, second.statistics.move_actions)
+
+
+@pytest.mark.parametrize(
+    "device",
+    [
+        torch.device("cpu"),
+        pytest.param(
+            torch.device("cuda"),
+            marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable"),
+        ),
+    ],
+)
+def test_factored_distribution_supports_declared_tensor_device(device: torch.device) -> None:
+    distribution = FactoredActionDistribution(
+        ActorLogits(
+            move=torch.zeros((2, 3), device=device),
+            message=torch.zeros((2, 2), device=device),
+        ),
+        move_action_masks=torch.ones((2, 3), dtype=torch.bool, device=device),
+        message_action_masks=torch.ones((2, 2), dtype=torch.bool, device=device),
+    )
+    statistics = distribution.sample(generator=make_torch_generator(5, device))
+    assert statistics.move_actions.device == device
+    assert statistics.message_actions.device == device
