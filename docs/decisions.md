@@ -46,3 +46,25 @@ global cache is inaccessible.
 delivery complexity to the first simulator.
 
 **Trade-off:** global delivery is less physically grounded than range-limited communication.
+
+## ADR-006: stable communication actions with explicit rejection
+
+**Decision:** keep the dictionary action space fixed and expose separate fixed-shape movement and
+message masks. Over-budget non-silent messages become reported rejected no-ops.
+
+**Rationale:** changing spaces or throwing on a sampled action violates the Parallel API contract,
+while silently accepting or dropping a token corrupts communication metrics.
+
+**Trade-off:** policies may still ignore the mask, so evaluators must distinguish attempted,
+rejected, and accepted communication through personal info and environment event records.
+
+## ADR-007: evaluation configuration owns structural comparisons
+
+**Decision:** a comparison evaluation file owns both environment paths and the complete seed
+partition declaration. Content fingerprints, not filenames, establish that environments differ.
+
+**Rationale:** a duplicate CLI reference environment and path-only checks permit accidental or
+mislabelled comparisons.
+
+**Trade-off:** comparison runs use a distinct CLI form without `--env-config`, and portable relative
+paths are interpreted from the evaluation file rather than the launch directory.

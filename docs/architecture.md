@@ -10,6 +10,12 @@ Policies implement an environment-independent protocol. Renderers consume immuta
 cannot advance the simulator. Evaluation orchestrates policies and environments, metrics consume
 recorded events, and reporting persists typed records.
 
+Each decentralized observation contains the local grid, teammate token slots, the agent's remaining
+communication budget, and fixed-shape `move_action_mask` and `message_action_mask` arrays. Action
+spaces never change during an episode. A non-silent token selected after the budget reaches zero is
+converted to a rejected no-op: it is not broadcast, charged, or counted, and the agent receives
+`communication_rejected: true` in its personal transition info.
+
 ```text
 config → generator → environment → observations → policies
                          ↓              ↓
@@ -25,6 +31,13 @@ config → generator → environment → observations → policies
 Future trainers may consume centralized state during optimization. Executing policies receive only
 their local observation and personal memory. This separation is enforced by distinct interfaces
 instead of a runtime flag inside a shared observation object.
+
+The centralized `state()` view contains the full obstacle/target/recovery map, ordered agent-position
+channels, active-agent slots, ordered communication budgets, ordered latest-message tokens, and the
+step counter. It is never passed to baseline policies. Policy outcome info is restricted to personal
+movement blocking, personal accepted-message status, and personal communication rejection. Team
+recoveries, accepted-message totals, success, and other evaluator facts are available through the
+immutable environment-level `last_events` record and snapshots instead of policy info.
 
 ## Extension points
 

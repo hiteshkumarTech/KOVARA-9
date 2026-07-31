@@ -18,7 +18,11 @@ uv sync --locked
 uv run kovara9 config validate configs/environments/grid_rescue_easy.yaml
 uv run kovara9 env run --config configs/environments/grid_rescue_easy.yaml --agent frontier --seed 7 --render ansi
 uv run kovara9 evaluate --env-config configs/environments/grid_rescue_easy.yaml --eval-config configs/evaluation/smoke.yaml --agent random --output runs/smoke
+uv run kovara9 evaluate --eval-config configs/evaluation/generalization.yaml --agent frontier --output runs/generalization
 ```
+
+Structural-comparison evaluation files declare both reference and held-out environments; supplying
+`--env-config` for such a run is rejected to avoid conflicting experiment definitions.
 
 If the host defines an inaccessible `UV_CACHE_DIR`, override it for the shell before running uv.
 For PowerShell:

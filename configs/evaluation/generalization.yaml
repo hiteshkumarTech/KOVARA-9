@@ -1,9 +1,14 @@
-schema_version: 1
+schema_version: 2
 name: structural-generalization
 seed_start: 20000
 num_episodes: 100
 bootstrap_samples: 2000
 bootstrap_confidence: 0.95
+seed_partition: test
+seed_partitions:
+  train: {start: 0, count: 10000}
+  validation: {start: 10000, count: 1000}
+  test: {start: 20000, count: 1000}
 comparison:
-  reference_environment: configs/environments/grid_rescue_medium.yaml
-  held_out_environment: configs/environments/grid_rescue_hard.yaml
+  reference_environment: ../environments/grid_rescue_medium.yaml
+  held_out_environment: ../environments/grid_rescue_hard.yaml

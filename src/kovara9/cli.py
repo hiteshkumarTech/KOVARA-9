@@ -9,11 +9,15 @@ import structlog
 import typer
 
 from kovara9.agents.frontier import FrontierPolicy
-from kovara9.agents.policy import Policy
+from kovara9.agents.policy import Policy, PolicyTransitionInfo
 from kovara9.agents.random import RandomPolicy
-from kovara9.config.loader import load_environment_config, load_evaluation_config
+from kovara9.config.loader import (
+    load_comparison_environment_configs,
+    load_environment_config,
+    load_evaluation_config,
+)
 from kovara9.config.models import EnvConfig, EvaluationConfig
-from kovara9.core.errors import KovaraError
+from kovara9.core.errors import ConfigurationError, KovaraError
 from kovara9.core.seeding import derive_seed
 from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.evaluation.runner import evaluate_policy
@@ -85,6 +89,8 @@ def validate_config(
             kind = "environment"
         except KovaraError:
             config = load_evaluation_config(path)
+            if config.comparison is not None:
+                load_comparison_environment_configs(config)
             kind = "evaluation"
     except KovaraError as exc:
         _abort(exc)
@@ -137,11 +143,16 @@ def run_environment(
         observations, rewards, terminations, truncations, infos = env.step(actions)
         shared_return += next(iter(rewards.values()))
         for agent_id in acting_agents:
+            policy_info = PolicyTransitionInfo(
+                blocked=bool(infos[agent_id]["blocked"]),
+                message_sent=bool(infos[agent_id]["message_sent"]),
+                communication_rejected=bool(infos[agent_id]["communication_rejected"]),
+            )
             policies[agent_id].observe_outcome(
                 reward=rewards[agent_id],
                 terminated=terminations[agent_id],
                 truncated=truncations[agent_id],
-                info=infos[agent_id],
+                info=policy_info,
             )
         success = any(terminations.values())
         if render == "ansi":
@@ -161,47 +172,62 @@ def run_environment(
 
 @app.command("evaluate")
 def evaluate(
-    env_config: Annotated[
-        Path,
-        typer.Option("--env-config", exists=True, dir_okay=False),
-    ],
     eval_config: Annotated[
         Path,
         typer.Option("--eval-config", exists=True, dir_okay=False),
     ],
+    env_config: Annotated[
+        Path | None,
+        typer.Option("--env-config", exists=True, dir_okay=False),
+    ] = None,
     agent: PolicyName = "frontier",
     output: Annotated[Path, typer.Option("--output")] = Path("runs/evaluation"),
 ) -> None:
     """Evaluate a baseline and persist transparent local artifacts."""
 
     try:
-        environment = load_environment_config(env_config)
         evaluation = load_evaluation_config(eval_config)
+        held_out_environment = None
+        if evaluation.comparison is not None:
+            if env_config is not None:
+                raise ConfigurationError(
+                    "--env-config must be omitted when the evaluation configuration "
+                    "declares an authoritative comparison"
+                )
+            environment, held_out_environment = load_comparison_environment_configs(evaluation)
+            environment_label = str(evaluation.comparison.reference_environment)
+        else:
+            if env_config is None:
+                raise ConfigurationError("--env-config is required when no comparison is declared")
+            environment = load_environment_config(env_config)
+            environment_label = str(env_config.resolve())
         policy_type = _policy_factory(agent)
         logger = structlog.get_logger()
         logger.info(
             "evaluation_started",
             policy=agent,
             episodes=len(evaluation.resolved_seeds),
-            environment=str(env_config),
+            environment=environment_label,
         )
         result = evaluate_policy(
             env_config=environment,
             evaluation_config=evaluation,
             policy_factory=policy_type,
         )
-        held_out_environment = None
         held_out_result = None
         comparison = None
-        if evaluation.comparison is not None:
-            held_out_path = evaluation.comparison.held_out_environment
-            held_out_environment = load_environment_config(held_out_path)
+        if held_out_environment is not None:
             held_out_result = evaluate_policy(
                 env_config=held_out_environment,
                 evaluation_config=evaluation,
                 policy_factory=policy_type,
             )
-            comparison = comparison_summary(result, held_out_result)
+            comparison = comparison_summary(
+                result,
+                held_out_result,
+                environment,
+                held_out_environment,
+            )
         ArtifactWriter(output).write(
             env_config=environment,
             evaluation_config=evaluation,

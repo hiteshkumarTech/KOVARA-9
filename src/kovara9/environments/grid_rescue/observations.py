@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import Any
 
 import numpy as np
 
 from kovara9.config.models import EnvConfig
-from kovara9.core.types import MAX_AGENTS, AgentId, Position, WorldSnapshot
+from kovara9.core.types import MAX_AGENTS, AgentId, Move, Position, WorldSnapshot
 
 VISIBLE = 0
 OBSTACLE = 1
@@ -59,20 +60,32 @@ def build_observation(
         if possible_agent != agent:
             messages[slot] = snapshot.latest_messages.get(possible_agent, 0)
 
+    message_count = config.communication.vocabulary_size + 1
+    if not config.communication.enabled:
+        message_count = 1
+    message_mask = np.zeros(message_count, dtype=np.int8)
+    message_mask[0] = 1
+    if snapshot.communication_budgets[agent] > 0:
+        message_mask[:] = 1
+
     return {
         "local_grid": grid,
         "active_agents": active_agents,
         "messages": messages,
         "communication_budget": np.int64(snapshot.communication_budgets[agent]),
+        "move_action_mask": np.ones(len(Move), dtype=np.int8),
+        "message_action_mask": message_mask,
     }
 
 
 def build_central_state(
     snapshot: WorldSnapshot,
     possible_agents: tuple[AgentId, ...],
+    live_agents: Collection[AgentId] | None = None,
 ) -> dict[str, Any]:
     """Build the trainer/debug-only full state."""
 
+    live_agent_set = set(possible_agents if live_agents is None else live_agents)
     channels = GLOBAL_BASE_CHANNELS + MAX_AGENTS
     grid = np.zeros((channels, snapshot.height, snapshot.width), dtype=np.uint8)
     grid[0] = snapshot.obstacles
@@ -83,15 +96,18 @@ def build_central_state(
 
     active_agents = np.zeros(MAX_AGENTS, dtype=np.int8)
     budgets = np.zeros(MAX_AGENTS, dtype=np.int64)
+    messages = np.zeros(MAX_AGENTS, dtype=np.int64)
     for slot, agent in enumerate(possible_agents):
         position = snapshot.agent_positions.get(agent)
         if position is not None:
-            active_agents[slot] = 1
+            active_agents[slot] = int(agent in live_agent_set)
             grid[GLOBAL_BASE_CHANNELS + slot, position.row, position.col] = 1
         budgets[slot] = snapshot.communication_budgets.get(agent, 0)
+        messages[slot] = snapshot.latest_messages.get(agent, 0)
     return {
         "global_grid": grid,
         "active_agents": active_agents,
         "communication_budgets": budgets,
+        "latest_messages": messages,
         "step_count": np.int64(snapshot.step_count),
     }

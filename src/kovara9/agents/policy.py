@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from collections.abc import Mapping
+from typing import Any, Protocol, TypedDict
 
 from gymnasium.spaces import Space
 
 from kovara9.core.types import AgentId
+
+
+class PolicyTransitionInfo(TypedDict):
+    """Personal transition facts permitted at the decentralized policy boundary."""
+
+    blocked: bool
+    message_sent: bool
+    communication_rejected: bool
 
 
 class Policy(Protocol):
@@ -15,6 +24,12 @@ class Policy(Protocol):
     @property
     def name(self) -> str:
         """Stable policy name for artifact provenance."""
+
+        ...
+
+    @property
+    def parameters(self) -> Mapping[str, bool | float | int | str]:
+        """Validated policy parameters that affect behavior."""
 
         ...
 
@@ -41,7 +56,7 @@ class Policy(Protocol):
         reward: float,
         terminated: bool,
         truncated: bool,
-        info: dict[str, Any],
+        info: PolicyTransitionInfo,
     ) -> None:
         """Receive this agent's public transition result."""
 

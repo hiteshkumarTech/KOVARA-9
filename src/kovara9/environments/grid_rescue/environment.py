@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from numbers import Integral
 from typing import Any, ClassVar
 
 import numpy as np
@@ -37,6 +38,7 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
     def __init__(self, config: EnvConfig, render_mode: str | None = None) -> None:
         if render_mode not in {None, "ansi", "rgb_array"}:
             raise ValueError(f"unsupported render_mode: {render_mode}")
+        config = EnvConfig.model_validate(config.model_dump(mode="python", round_trip=True))
         self.config = config
         self.render_mode = render_mode
         self.possible_agents = list(agent_slots(config.num_agents))
@@ -63,6 +65,8 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
                     np.full(MAX_AGENTS, message_count, dtype=np.int64)
                 ),
                 "communication_budget": spaces.Discrete(config.communication.budget_per_agent + 1),
+                "move_action_mask": spaces.MultiBinary(len(Move)),
+                "message_action_mask": spaces.MultiBinary(message_count),
             }
         )
         action_space = spaces.Dict(
@@ -91,6 +95,9 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
                     high=config.communication.budget_per_agent,
                     shape=(MAX_AGENTS,),
                     dtype=np.int64,
+                ),
+                "latest_messages": spaces.MultiDiscrete(
+                    np.full(MAX_AGENTS, message_count, dtype=np.int64)
                 ),
                 "step_count": spaces.Discrete(config.max_steps + 1),
             }
@@ -163,11 +170,20 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
         destinations, blocked = self._resolve_movements(state, parsed)
         state.agent_positions.update(destinations)
 
-        messages_sent = sum(action.message != 0 for action in parsed.values())
-        for agent, action in parsed.items():
-            if action.message:
+        rejected_message_agents = {
+            agent
+            for agent, action in parsed.items()
+            if action.message != 0 and state.communication_budgets[agent] <= 0
+        }
+        accepted_messages = {
+            agent: 0 if agent in rejected_message_agents else action.message
+            for agent, action in parsed.items()
+        }
+        messages_sent = sum(message != 0 for message in accepted_messages.values())
+        for agent in parsed:
+            if accepted_messages[agent]:
                 state.communication_budgets[agent] -= 1
-        state.latest_messages = {agent: action.message for agent, action in parsed.items()}
+        state.latest_messages = accepted_messages
 
         newly_recovered = tuple(
             sorted(
@@ -189,7 +205,12 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
             + messages_sent * self.config.reward.message_penalty
             + (self.config.reward.success_bonus if success else 0.0)
         )
-        self.last_events = StepEvents(newly_recovered, messages_sent, tuple(sorted(blocked)))
+        self.last_events = StepEvents(
+            newly_recovered,
+            messages_sent,
+            tuple(sorted(blocked)),
+            tuple(sorted(rejected_message_agents)),
+        )
 
         rewards = dict.fromkeys(acting_agents, team_reward)
         terminations = dict.fromkeys(acting_agents, success)
@@ -197,9 +218,8 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
         infos = {
             agent: {
                 "blocked": agent in blocked,
-                "newly_recovered": len(newly_recovered),
-                "messages_sent": messages_sent,
-                "success": success,
+                "message_sent": accepted_messages[agent] != 0,
+                "communication_rejected": agent in rejected_message_agents,
             }
             for agent in acting_agents
         }
@@ -213,7 +233,11 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
     def state(self) -> dict[str, Any]:
         """Return full state for future centralized training and diagnostics."""
 
-        return build_central_state(self._require_state().snapshot(), self._possible_agents_tuple)
+        return build_central_state(
+            self._require_state().snapshot(),
+            self._possible_agents_tuple,
+            self.agents,
+        )
 
     def render(self) -> str | np.ndarray | None:
         """Render the current snapshot without changing simulator state."""
@@ -245,19 +269,30 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
         raw_action: Mapping[str, Any] | AgentAction,
     ) -> AgentAction:
         if isinstance(raw_action, AgentAction):
-            action = raw_action
+            raw_move: Any = raw_action.move
+            raw_message: Any = raw_action.message
         else:
+            if not isinstance(raw_action, Mapping):
+                raise InvalidActionError(f"invalid action for {agent}: {raw_action}")
             if set(raw_action) != {"move", "message"}:
                 raise InvalidActionError(
                     f"{agent} action must contain exactly 'move' and 'message'"
                 )
-            try:
-                action = AgentAction(
-                    move=Move(int(raw_action["move"])),
-                    message=int(raw_action["message"]),
-                )
-            except (TypeError, ValueError) as exc:
-                raise InvalidActionError(f"invalid action for {agent}: {raw_action}") from exc
+            raw_move = raw_action["move"]
+            raw_message = raw_action["message"]
+        if (
+            isinstance(raw_move, bool)
+            or not isinstance(raw_move, Integral)
+            or isinstance(raw_message, bool)
+            or not isinstance(raw_message, Integral)
+        ):
+            raise InvalidActionError(
+                f"{agent} move and message must be integral action values: {raw_action}"
+            )
+        try:
+            action = AgentAction(move=Move(int(raw_move)), message=int(raw_message))
+        except ValueError as exc:
+            raise InvalidActionError(f"invalid action for {agent}: {raw_action}") from exc
         max_message = (
             self.config.communication.vocabulary_size if self.config.communication.enabled else 0
         )
@@ -265,9 +300,6 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
             raise InvalidActionError(
                 f"{agent} message {action.message} is outside [0, {max_message}]"
             )
-        state = self._require_state()
-        if action.message and state.communication_budgets[agent] <= 0:
-            raise InvalidActionError(f"{agent} cannot send: communication budget exhausted")
         return action
 
     @staticmethod

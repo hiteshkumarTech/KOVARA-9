@@ -8,11 +8,16 @@ from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.environments.grid_rescue.state import WorldState
 
 
-def _state(positions: dict[str, Position]) -> WorldState:
+def _state(
+    positions: dict[str, Position],
+    *,
+    width: int = 5,
+    height: int = 5,
+) -> WorldState:
     return WorldState(
-        width=5,
-        height=5,
-        obstacles=np.zeros((5, 5), dtype=np.bool_),
+        width=width,
+        height=height,
+        obstacles=np.zeros((height, width), dtype=np.bool_),
         agent_positions=positions,
         targets={Position(4, 4)},
         recovered_targets=set(),
@@ -56,6 +61,63 @@ def test_swaps_and_contested_destinations_fail(
     assert blocked == set(positions)
 
 
+def test_three_agent_collision_cycle_with_contested_leg_is_blocked_atomically() -> None:
+    positions = {
+        "agent_0": Position(1, 0),
+        "agent_1": Position(1, 1),
+        "agent_2": Position(1, 2),
+    }
+    result, blocked = GridRescueParallelEnv._resolve_movements(
+        _state(positions),
+        _actions(agent_0=Move.EAST, agent_1=Move.WEST, agent_2=Move.WEST),
+    )
+    assert result == positions
+    assert blocked == set(positions)
+
+
+def test_four_agent_movement_cycle_is_blocked_atomically() -> None:
+    positions = {
+        "agent_0": Position(1, 1),
+        "agent_1": Position(1, 2),
+        "agent_2": Position(2, 2),
+        "agent_3": Position(2, 1),
+    }
+    result, blocked = GridRescueParallelEnv._resolve_movements(
+        _state(positions),
+        _actions(
+            agent_0=Move.EAST,
+            agent_1=Move.SOUTH,
+            agent_2=Move.WEST,
+            agent_3=Move.NORTH,
+        ),
+    )
+    assert result == positions
+    assert blocked == set(positions)
+
+
+def test_blocked_movement_cascades_through_occupied_chain() -> None:
+    positions = {
+        "agent_0": Position(1, 0),
+        "agent_1": Position(1, 1),
+        "agent_2": Position(1, 2),
+    }
+    result, blocked = GridRescueParallelEnv._resolve_movements(
+        _state(positions),
+        _actions(agent_0=Move.EAST, agent_1=Move.EAST, agent_2=Move.STAY),
+    )
+    assert result == positions
+    assert blocked == {"agent_0", "agent_1"}
+
+
+def test_joint_action_dictionary_order_does_not_change_transition() -> None:
+    positions = {"agent_0": Position(1, 0), "agent_1": Position(1, 1)}
+    forward = _actions(agent_0=Move.EAST, agent_1=Move.EAST)
+    reverse = dict(reversed(tuple(forward.items())))
+    first = GridRescueParallelEnv._resolve_movements(_state(positions), forward)
+    second = GridRescueParallelEnv._resolve_movements(_state(positions), reverse)
+    assert first == second
+
+
 def test_boundaries_walls_and_stationary_occupants_block() -> None:
     state = _state({"agent_0": Position(0, 0), "agent_1": Position(0, 1)})
     state.obstacles[1, 0] = True
@@ -71,6 +133,10 @@ def test_reset_spaces_step_and_defensive_snapshot(easy_config: EnvConfig) -> Non
     observations, infos = env.reset(seed=12)
     assert set(observations) == set(env.possible_agents)
     assert all(env.observation_space(a).contains(observations[a]) for a in env.agents)
+    assert all(
+        observation["message_action_mask"].tolist() == [1, 1, 1, 1, 1]
+        for observation in observations.values()
+    )
     assert env.state_space.contains(env.state())
     assert all(infos[agent]["seed"] == 12 for agent in env.agents)
     assert env.render().shape == (8, 8, 3)
@@ -90,7 +156,11 @@ def test_terminal_recovery_and_post_terminal_step(easy_config: EnvConfig) -> Non
     config = easy_config.model_copy(update={"max_steps": 5})
     env = GridRescueParallelEnv(config)
     env.reset(seed=1)
-    state = _state({"agent_0": Position(1, 0), "agent_1": Position(4, 0)})
+    state = _state(
+        {"agent_0": Position(1, 0), "agent_1": Position(4, 0)},
+        width=config.width,
+        height=config.height,
+    )
     state.targets = {Position(1, 1)}
     state.communication_budgets = {"agent_0": 2, "agent_1": 2}
     state.latest_messages = {"agent_0": 0, "agent_1": 0}
@@ -105,13 +175,19 @@ def test_terminal_recovery_and_post_terminal_step(easy_config: EnvConfig) -> Non
     assert all(terminated.values())
     assert not any(truncated.values())
     assert env.last_events.recovered_targets == (Position(1, 1),)
-    assert infos["agent_0"]["success"]
+    assert infos["agent_0"] == {
+        "blocked": False,
+        "message_sent": True,
+        "communication_rejected": False,
+    }
     assert rewards["agent_0"] > 5
+    assert env.state()["active_agents"].tolist() == [0, 0, 0, 0]
+    assert env.state_space.contains(env.state())
     with pytest.raises(RuntimeError, match="episode ended"):
         env.step({})
 
 
-def test_invalid_actions_and_budget_are_explicit(easy_config: EnvConfig) -> None:
+def test_invalid_actions_and_budget_rejection_are_explicit(easy_config: EnvConfig) -> None:
     env = GridRescueParallelEnv(easy_config)
     with pytest.raises(RuntimeError, match="not been reset"):
         env.state()
@@ -130,7 +206,39 @@ def test_invalid_actions_and_budget_are_explicit(easy_config: EnvConfig) -> None
         env.step(actions)
     env._state.communication_budgets["agent_0"] = 0
     actions["agent_0"] = {"move": 0, "message": 1}
-    with pytest.raises(InvalidActionError, match="exhausted"):
+    observations, _rewards, _terminated, _truncated, infos = env.step(actions)
+    assert infos["agent_0"]["communication_rejected"] is True
+    assert infos["agent_0"]["message_sent"] is False
+    assert env.last_events.rejected_message_agents == ("agent_0",)
+    assert env.last_events.messages_sent == 0
+    assert env.snapshot.communication_budgets["agent_0"] == 0
+    assert env.snapshot.latest_messages["agent_0"] == 0
+    assert observations["agent_0"]["message_action_mask"].tolist() == [1, 0, 0, 0, 0]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("move", 1.9),
+        ("move", True),
+        ("move", "1"),
+        ("message", 1.0),
+        ("message", False),
+        ("message", "1"),
+    ],
+)
+def test_non_integral_action_values_are_rejected(
+    easy_config: EnvConfig,
+    field: str,
+    value: object,
+) -> None:
+    env = GridRescueParallelEnv(easy_config)
+    env.reset(seed=1)
+    actions: dict[str, dict[str, object]] = {
+        agent: {"move": 0, "message": 0} for agent in env.agents
+    }
+    actions["agent_0"][field] = value
+    with pytest.raises(InvalidActionError, match="integral action values"):
         env.step(actions)
 
 

@@ -1,15 +1,37 @@
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
 
-from kovara9.config.models import EnvConfig, EvaluationConfig
+from kovara9.config.models import (
+    EnvConfig,
+    EvaluationConfig,
+    SeedPartitionsConfig,
+    SeedRangeConfig,
+)
 from kovara9.core.errors import ArtifactError
 from kovara9.evaluation.metrics import aggregate_records
 from kovara9.evaluation.records import EpisodeRecord
 from kovara9.evaluation.runner import EvaluationResult
 from kovara9.reporting.artifacts import ArtifactWriter
 from kovara9.reporting.summaries import comparison_summary
+
+PARTITIONS = SeedPartitionsConfig(
+    train=SeedRangeConfig(start=0, count=10_000),
+    validation=SeedRangeConfig(start=10_000, count=1_000),
+    test=SeedRangeConfig(start=20_000, count=1_000),
+)
+
+
+def _evaluation(name: str = "artifact") -> EvaluationConfig:
+    return EvaluationConfig(
+        name=name,
+        seeds=(20000,),
+        seed_partition="test",
+        seed_partitions=PARTITIONS,
+        bootstrap_samples=0,
+    )
 
 
 def _result(success: bool) -> EvaluationResult:
@@ -27,10 +49,11 @@ def _result(success: bool) -> EvaluationResult:
         shared_return=1,
         termination_reason="success" if success else "time_limit",
     )
-    config = EvaluationConfig(name="artifact", seeds=(20000,), bootstrap_samples=0)
+    config = _evaluation()
     return EvaluationResult(
         records=(record,),
         summary=aggregate_records([record], config, "random"),
+        policy_parameters={"message_probability": 0.1},
     )
 
 
@@ -39,7 +62,7 @@ def test_artifacts_are_complete_parseable_and_collision_safe(
     easy_config: EnvConfig,
 ) -> None:
     output = tmp_path / "run"
-    evaluation = EvaluationConfig(name="artifact", seeds=(20000,), bootstrap_samples=0)
+    evaluation = _evaluation()
     result = _result(True)
     ArtifactWriter(output, project_root=tmp_path).write(
         env_config=easy_config,
@@ -50,7 +73,14 @@ def test_artifacts_are_complete_parseable_and_collision_safe(
     summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
     episode = json.loads((output / "episodes.jsonl").read_text(encoding="utf-8"))
     assert manifest["status"] == "complete"
-    assert manifest["uv_lock_sha256"] is None
+    assert manifest["policy"] == {
+        "name": "random",
+        "parameters": {"message_probability": 0.1},
+    }
+    assert manifest["configured_episode_seeds"] == [20000]
+    assert manifest["executed_episode_seeds"] == [20000]
+    assert manifest["configuration_fingerprints"]["environment"]
+    assert manifest["uv_lock_sha256"]
     assert summary["metrics"]["success_rate"]["mean"] == 1
     assert episode["seed"] == 20000
     assert not list(output.glob("*.tmp"))
@@ -68,14 +98,15 @@ def test_comparison_artifacts_and_input_pair_validation(
 ) -> None:
     reference = _result(True)
     held_out = _result(False)
-    comparison = comparison_summary(reference, held_out)
-    evaluation = EvaluationConfig(name="compare", seeds=(20000,), bootstrap_samples=0)
+    held_out_config = easy_config.model_copy(update={"max_steps": easy_config.max_steps + 1})
+    comparison = comparison_summary(reference, held_out, easy_config, held_out_config)
+    evaluation = _evaluation("compare")
     output = tmp_path / "comparison"
     ArtifactWriter(output).write(
         env_config=easy_config,
         evaluation_config=evaluation,
         result=reference,
-        held_out_env_config=easy_config,
+        held_out_env_config=held_out_config,
         held_out_result=held_out,
         comparison=comparison,
     )
@@ -89,3 +120,61 @@ def test_comparison_artifacts_and_input_pair_validation(
             result=reference,
             held_out_env_config=easy_config,
         )
+
+
+def test_artifacts_reject_result_seed_inconsistency(
+    tmp_path: Path,
+    easy_config: EnvConfig,
+) -> None:
+    valid = _result(True)
+    inconsistent_record = EpisodeRecord(**{**valid.records[0].to_dict(), "seed": 20001})
+    inconsistent = EvaluationResult(
+        records=(inconsistent_record,),
+        summary=valid.summary,
+        policy_parameters=valid.policy_parameters,
+    )
+    with pytest.raises(ArtifactError, match="result seeds do not match"):
+        ArtifactWriter(tmp_path / "bad-seeds").write(
+            env_config=easy_config,
+            evaluation_config=_evaluation(),
+            result=inconsistent,
+        )
+    assert not (tmp_path / "bad-seeds").exists()
+
+
+def test_git_provenance_discovers_root_from_subdirectory_and_dirty_tree(
+    tmp_path: Path,
+    easy_config: EnvConfig,
+) -> None:
+    repository = tmp_path / "repository"
+    nested = repository / "nested" / "directory"
+    nested.mkdir(parents=True)
+    subprocess.run(["git", "init", str(repository)], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repository), "config", "user.email", "test@example.invalid"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repository), "config", "user.name", "KOVARA Test"],
+        check=True,
+    )
+    tracked = repository / "tracked.txt"
+    tracked.write_text("initial\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repository), "add", "tracked.txt"], check=True)
+    subprocess.run(
+        ["git", "-C", str(repository), "commit", "-m", "test fixture"],
+        check=True,
+        capture_output=True,
+    )
+    tracked.write_text("dirty\n", encoding="utf-8")
+
+    output = tmp_path / "dirty-run"
+    ArtifactWriter(output, project_root=nested).write(
+        env_config=easy_config,
+        evaluation_config=_evaluation(),
+        result=_result(True),
+    )
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+    assert Path(manifest["git"]["repository_root"]) == repository.resolve()
+    assert manifest["git"]["commit"]
+    assert manifest["git"]["dirty"] is True

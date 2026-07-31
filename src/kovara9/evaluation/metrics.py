@@ -96,6 +96,13 @@ def aggregate_records(
 
     if not records:
         raise ValueError("evaluation produced no episode records")
+    configured_seeds = config.resolved_seeds
+    executed_seeds = tuple(record.seed for record in records)
+    if executed_seeds != configured_seeds:
+        raise ValueError(
+            "evaluation record seeds do not match configured seeds: "
+            f"configured={configured_seeds}, executed={executed_seeds}"
+        )
     metric_values = {
         "success_rate": [float(record.success) for record in records],
         "episode_length": [float(record.episode_length) for record in records],

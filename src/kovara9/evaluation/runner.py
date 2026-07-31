@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 
-from kovara9.agents.policy import Policy
+from kovara9.agents.policy import Policy, PolicyTransitionInfo
 from kovara9.config.models import EnvConfig, EvaluationConfig
 from kovara9.core.seeding import derive_seed
 from kovara9.core.types import AgentId, Position, WorldSnapshot
@@ -27,6 +28,7 @@ class EvaluationResult:
 
     records: tuple[EpisodeRecord, ...]
     summary: EvaluationSummary
+    policy_parameters: Mapping[str, bool | float | int | str]
 
 
 def _visible_reachable_cells(
@@ -86,13 +88,18 @@ def run_episode(
         if rewards:
             shared_return += next(iter(rewards.values()))
         for agent in acting_agents:
+            policy_info = PolicyTransitionInfo(
+                blocked=bool(infos[agent]["blocked"]),
+                message_sent=bool(infos[agent]["message_sent"]),
+                communication_rejected=bool(infos[agent]["communication_rejected"]),
+            )
             policies[agent].observe_outcome(
                 reward=rewards[agent],
                 terminated=terminations[agent],
                 truncated=truncations[agent],
-                info=infos[agent],
+                info=policy_info,
             )
-        for agent in env.agents:
+        for agent in acting_agents:
             observed[agent].update(
                 _visible_reachable_cells(env.snapshot, agent, env_config.observation_radius)
             )
@@ -128,10 +135,18 @@ def evaluate_policy(
 ) -> EvaluationResult:
     """Evaluate a fresh independent policy team for every configured seed."""
 
+    env_config = EnvConfig.model_validate(env_config.model_dump(mode="python", round_trip=True))
+    evaluation_config = EvaluationConfig.model_validate(
+        evaluation_config.model_dump(mode="python", round_trip=True)
+    )
+    probe = policy_factory()
     records = tuple(
         run_episode(env_config=env_config, seed=seed, policy_factory=policy_factory)
         for seed in evaluation_config.resolved_seeds
     )
-    probe = policy_factory()
     summary = aggregate_records(records, evaluation_config, probe.name)
-    return EvaluationResult(records=records, summary=summary)
+    return EvaluationResult(
+        records=records,
+        summary=summary,
+        policy_parameters=MappingProxyType(dict(probe.parameters)),
+    )

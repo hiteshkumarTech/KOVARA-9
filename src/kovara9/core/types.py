@@ -65,6 +65,7 @@ class StepEvents:
     recovered_targets: tuple[Position, ...]
     messages_sent: int
     blocked_agents: tuple[AgentId, ...]
+    rejected_message_agents: tuple[AgentId, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

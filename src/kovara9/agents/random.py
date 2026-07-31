@@ -8,6 +8,7 @@ import numpy as np
 from gymnasium.spaces import Dict as DictSpace
 from gymnasium.spaces import Discrete, Space
 
+from kovara9.agents.policy import PolicyTransitionInfo
 from kovara9.core.types import AgentId
 
 
@@ -25,6 +26,10 @@ class RandomPolicy:
     @property
     def name(self) -> str:
         return "random"
+
+    @property
+    def parameters(self) -> dict[str, bool | float | int | str]:
+        return {"message_probability": self.message_probability}
 
     def reset(
         self,
@@ -62,6 +67,6 @@ class RandomPolicy:
         reward: float,
         terminated: bool,
         truncated: bool,
-        info: dict[str, Any],
+        info: PolicyTransitionInfo,
     ) -> None:
         del reward, terminated, truncated, info

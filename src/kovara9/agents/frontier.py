@@ -9,6 +9,7 @@ import numpy as np
 from gymnasium.spaces import Dict as DictSpace
 from gymnasium.spaces import Discrete, Space
 
+from kovara9.agents.policy import PolicyTransitionInfo
 from kovara9.core.types import AgentId, Move, Position
 
 
@@ -25,6 +26,10 @@ class FrontierPolicy:
     @property
     def name(self) -> str:
         return "frontier"
+
+    @property
+    def parameters(self) -> dict[str, bool | float | int | str]:
+        return {}
 
     def reset(
         self,
@@ -67,7 +72,7 @@ class FrontierPolicy:
         reward: float,
         terminated: bool,
         truncated: bool,
-        info: dict[str, Any],
+        info: PolicyTransitionInfo,
     ) -> None:
         del reward, terminated, truncated
         if not bool(info.get("blocked", False)):

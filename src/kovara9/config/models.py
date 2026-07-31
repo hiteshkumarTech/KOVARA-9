@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import copy
+import math
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Self
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -13,7 +16,26 @@ from kovara9.core.types import MAX_AGENTS
 class StrictModel(BaseModel):
     """Shared strict and immutable model behavior."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+    def model_copy(
+        self,
+        *,
+        update: Mapping[str, Any] | None = None,
+        deep: bool = False,
+    ) -> Self:
+        """Return a validated copy, including any requested updates.
+
+        Pydantic's default ``model_copy(update=...)`` trusts update data. Research
+        configuration must instead pass through the same validation as file input.
+        """
+
+        data = self.model_dump(mode="python", round_trip=True)
+        if deep:
+            data = copy.deepcopy(data)
+        if update:
+            data.update(update)
+        return type(self).model_validate(data)
 
 
 class CommunicationConfig(StrictModel):
@@ -74,7 +96,61 @@ class EnvConfig(StrictModel):
             raise ValueError(
                 f"grid expects {expected_free} free cells but requires at least {required}"
             )
+        maximum_step_reward = (
+            self.num_targets * abs(self.reward.target_recovery)
+            + abs(self.reward.success_bonus)
+            + abs(self.reward.step_penalty)
+            + self.num_agents * abs(self.reward.message_penalty)
+        )
+        if not math.isfinite(maximum_step_reward):
+            raise ValueError("reward configuration can produce a non-finite team reward")
         return self
+
+
+class SeedRangeConfig(StrictModel):
+    """Inclusive-exclusive seed range for one scientific partition."""
+
+    start: int = Field(ge=0)
+    count: int = Field(ge=1, le=1_000_000)
+
+    @property
+    def resolved_seeds(self) -> range:
+        """Return the immutable half-open range represented by this configuration."""
+
+        return range(self.start, self.start + self.count)
+
+
+class SeedPartitionsConfig(StrictModel):
+    """Scientifically separate train, validation, and test seed domains."""
+
+    train: SeedRangeConfig
+    validation: SeedRangeConfig
+    test: SeedRangeConfig
+
+    @model_validator(mode="after")
+    def partitions_must_not_overlap(self) -> Self:
+        named_ranges = {
+            "train": self.train.resolved_seeds,
+            "validation": self.validation.resolved_seeds,
+            "test": self.test.resolved_seeds,
+        }
+        names = tuple(named_ranges)
+        for index, first_name in enumerate(names):
+            first = named_ranges[first_name]
+            for second_name in names[index + 1 :]:
+                second = named_ranges[second_name]
+                if max(first.start, second.start) < min(first.stop, second.stop):
+                    raise ValueError(f"seed partitions overlap: {first_name} and {second_name}")
+        return self
+
+    def seeds_for(self, name: Literal["train", "validation", "test"]) -> range:
+        """Return the configured range for a named partition."""
+
+        if name == "train":
+            return self.train.resolved_seeds
+        if name == "validation":
+            return self.validation.resolved_seeds
+        return self.test.resolved_seeds
 
 
 class ComparisonConfig(StrictModel):
@@ -93,13 +169,15 @@ class ComparisonConfig(StrictModel):
 class EvaluationConfig(StrictModel):
     """Finite, reproducible evaluation suite."""
 
-    schema_version: int = Field(default=1, ge=1, le=1)
+    schema_version: int = Field(default=2, ge=2, le=2)
     name: str = Field(min_length=1, max_length=100)
     seeds: tuple[int, ...] | None = None
     seed_start: int | None = Field(default=None, ge=0)
     num_episodes: int | None = Field(default=None, ge=1, le=100_000)
     bootstrap_samples: int = Field(default=2_000, ge=0, le=100_000)
     bootstrap_confidence: float = Field(default=0.95, gt=0.0, lt=1.0)
+    seed_partition: Literal["train", "validation", "test"]
+    seed_partitions: SeedPartitionsConfig
     comparison: ComparisonConfig | None = None
 
     @model_validator(mode="after")
@@ -115,6 +193,12 @@ class EvaluationConfig(StrictModel):
             raise ValueError("evaluation seeds must be non-negative")
         if len(set(resolved)) != len(resolved):
             raise ValueError("evaluation seeds must be unique")
+        allowed = self.seed_partitions.seeds_for(self.seed_partition)
+        outside = [seed for seed in resolved if seed not in allowed]
+        if outside:
+            raise ValueError(
+                f"evaluation seeds are outside the {self.seed_partition} partition: {outside[:5]}"
+            )
         return self
 
     @property
