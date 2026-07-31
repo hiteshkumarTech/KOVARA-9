@@ -132,6 +132,25 @@ def test_mappo_loss_uses_joint_factored_log_probability() -> None:
     )
 
 
+def test_centralized_critic_predictions_define_value_loss() -> None:
+    actor, critic = _networks()
+    batch = _minibatch(actor, critic)
+    with torch.no_grad():
+        for parameter in critic.parameters():
+            parameter.zero_()
+    diagnostics = mappo_style_loss(
+        actor=actor,
+        critic=critic,
+        batch=batch,
+        clipping_coefficient=0.2,
+        entropy_coefficient=0.0,
+        value_coefficient=1.0,
+        explained_variance_epsilon=1e-8,
+    )
+    expected = 0.5 * torch.square(batch.value_targets).mean()
+    assert torch.allclose(diagnostics.value_loss, expected)
+
+
 def test_entropy_and_value_coefficients_change_total_loss_exactly() -> None:
     actor, critic = _networks()
     batch = _minibatch(actor, critic)
@@ -210,6 +229,15 @@ def test_loss_rejects_empty_or_non_finite_samples() -> None:
             new_log_probabilities=torch.zeros(1),
             old_log_probabilities=torch.zeros(1),
             advantages=torch.tensor([float("nan")]),
+            valid_samples=torch.ones(1, dtype=torch.bool),
+            clipping_coefficient=0.2,
+        )
+
+    with pytest.raises(NumericalError, match="probability ratios"):
+        clipped_surrogate_loss(
+            new_log_probabilities=torch.tensor([1_000.0]),
+            old_log_probabilities=torch.zeros(1),
+            advantages=torch.ones(1),
             valid_samples=torch.ones(1, dtype=torch.bool),
             clipping_coefficient=0.2,
         )

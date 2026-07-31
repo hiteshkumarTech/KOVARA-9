@@ -150,6 +150,4 @@ def load_training_inputs(path: Path) -> TrainingInputs:
         raise ConfigurationError(
             "minibatch_size cannot exceed rollout_length * num_environments * num_agents"
         )
-    if rollout_transitions % training.minibatch_size != 0:
-        raise ConfigurationError("rollout agent transitions must be divisible by minibatch_size")
     return TrainingInputs(training, environment, validation)
