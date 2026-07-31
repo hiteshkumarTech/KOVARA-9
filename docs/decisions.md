@@ -68,3 +68,14 @@ mislabelled comparisons.
 
 **Trade-off:** comparison runs use a distinct CLI form without `--env-config`, and portable relative
 paths are interpreted from the evaluation file rather than the launch directory.
+
+## ADR-008: one feed-forward parameter-sharing CTDE learner
+
+**Decision:** v0.1 uses PyTorch, one shared feed-forward actor, one centralized team-value critic,
+and a single MAPPO-style PPO training path.
+
+**Rationale:** this directly tests the approved parameter-sharing research question while keeping
+decentralized execution and centralized training mechanically separate and reviewable.
+
+**Trade-off:** the initial actor has no recurrence and the critic estimates one shared team value.
+This is a documented MAPPO-style simplification, not a claim of reproducing every MAPPO variant.

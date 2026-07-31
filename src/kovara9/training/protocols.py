@@ -2,10 +2,26 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from kovara9.agents.policy import Policy
+
+@dataclass(frozen=True, slots=True)
+class TrainingProgress:
+    """Serializable counters required for checkpoint resume."""
+
+    environment_steps: int
+    optimizer_updates: int
+    completed_episodes: int
+
+
+@dataclass(frozen=True, slots=True)
+class TrainingResult:
+    """Result of a completed or deliberately bounded training invocation."""
+
+    checkpoint: Path
+    progress: TrainingProgress
 
 
 class Trainer(Protocol):
@@ -17,7 +33,12 @@ class Trainer(Protocol):
 
         ...
 
-    def train(self, *, output_dir: Path, seed: int) -> tuple[Policy, ...]:
-        """Train and return independently executable policies."""
+    def train(
+        self,
+        *,
+        output_dir: Path,
+        resume_from: Path | None = None,
+    ) -> TrainingResult:
+        """Train one shared policy and return its checkpoint and exact progress."""
 
         ...

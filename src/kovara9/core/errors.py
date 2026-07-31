@@ -19,3 +19,11 @@ class InvalidActionError(KovaraError):
 
 class ArtifactError(KovaraError):
     """Raised when evaluation artifacts cannot be written safely."""
+
+
+class TrainingError(KovaraError):
+    """Raised when a training workflow violates its declared contract."""
+
+
+class NumericalError(TrainingError):
+    """Raised when non-finite tensors would invalidate a learning update."""
