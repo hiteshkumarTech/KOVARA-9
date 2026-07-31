@@ -39,6 +39,21 @@ movement blocking, personal accepted-message status, and personal communication 
 recoveries, accepted-message totals, success, and other evaluator facts are available through the
 immutable environment-level `last_events` record and snapshots instead of policy info.
 
+## v0.1 learner boundary
+
+The v0.1 learner uses one `SharedActor` instance for every homogeneous agent and a separate
+`CentralizedCritic`. `ActorObservationEncoder` accepts only values contained by the decentralized
+observation space and produces an `ActorInput`; `CentralStateEncoder` accepts `state_space` values and
+produces a distinct `CriticInput`. Both the type boundary and runtime validation reject crossing
+these inputs.
+
+Networks are feed-forward MLP foundations with independently derived initialization seeds. The actor
+has separate movement and message logits, while action masking and sampling remain outside the
+network so the environment contract stays explicit. Fixed-shape rollout storage records local actor
+features, centralized critic features, both masks, actions, log probabilities, shared rewards,
+values, live-agent slots, and termination/truncation boundaries. Collection, GAE, and optimization
+are subsequent sprint milestones and are not implemented by these foundations.
+
 ## Extension points
 
 - New environments implement the same parallel environment and snapshot boundaries.
