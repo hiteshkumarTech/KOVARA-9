@@ -48,11 +48,25 @@ produces a distinct `CriticInput`. Both the type boundary and runtime validation
 these inputs.
 
 Networks are feed-forward MLP foundations with independently derived initialization seeds. The actor
-has separate movement and message logits, while action masking and sampling remain outside the
-network so the environment contract stays explicit. Fixed-shape rollout storage records local actor
-features, centralized critic features, both masks, actions, log probabilities, shared rewards,
-values, live-agent slots, and termination/truncation boundaries. Collection, GAE, and optimization
-are subsequent sprint milestones and are not implemented by these foundations.
+has separate movement and message logits. A factored distribution layer applies the two masks before
+normalization and never constructs a Cartesian action space. Invalid actions have exactly zero
+probability; a mask row with no legal action is an error. Stochastic selection uses an explicit
+device-local Torch generator, while evaluation uses a deterministic masked argmax. Joint log
+probability and entropy are the sums of their inspectable movement and communication factors.
+
+`SynchronousRolloutCollector` owns a configured set of in-process environments behind a declared
+protocol; it does not use workers or import transition rules. At each tick it batches decentralized
+observations in environment-major, stable agent order for the shared actor and independently batches
+`state()` values for the critic. Environment info is consumed only after selection to record the
+personal communication-rejection event; team-global outcome fields cannot enter the actor path.
+
+Fixed-shape rollout storage records local actor features, centralized critic features, both masks,
+factored actions and log probabilities, shared rewards, values, per-transition next values,
+live-agent slots, communication rejections, episode-start and end boundaries, environment IDs,
+transition IDs, and the fixed agent order. Terminal centralized state is evaluated before a reset;
+true terminations then receive a zero bootstrap, while truncations retain that terminal-state value.
+This prevents the next episode's initial value from leaking across a boundary. GAE and optimization
+remain Day 3 work and are not implemented by the Day 2 collector.
 
 ## Extension points
 
