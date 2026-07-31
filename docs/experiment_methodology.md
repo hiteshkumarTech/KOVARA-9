@@ -53,7 +53,8 @@ schedule, optimizer coefficients, checkpoint/evaluation frequencies, device poli
 mode, and training seed. Paths resolve relative to the owning YAML. Cross-validation requires the
 training seed to belong to the declared train partition and periodic evaluation to select the
 validation partition. Total joint environment steps and checkpoint/evaluation frequencies align to
-complete rollout boundaries; minibatches divide the resulting agent-transition batch exactly.
+complete rollout boundaries. PPO consumes every valid agent transition and permits a smaller final
+minibatch when the valid count is not divisible by `minibatch_size`.
 
 The smoke configuration is a pipeline test only. It is not evidence of learning quality and cannot
 be included in v0.1 scientific results.
@@ -62,10 +63,10 @@ be included in v0.1 scientific results.
 
 One root training seed is expanded with BLAKE2b-based semantic labels; persistent seeds never use
 Python's process-randomized `hash()`. The current streams are `network/actor`, `network/critic`,
-`policy/sampling`, `environment/<environment-id>/episode/<episode-index>`, and
-`evaluation/<evaluation-index>`. An environment's next reset seed therefore depends only on its
-stable numeric slot and local episode counter, not worker scheduling or the order in which other
-environments finish.
+`policy/sampling`, `optimizer/shuffle`,
+`environment/<environment-id>/episode/<episode-index>`, and `evaluation/<evaluation-index>`. An
+environment's next reset seed therefore depends only on its stable numeric slot and local episode
+counter, not worker scheduling or the order in which other environments finish.
 
 Rollouts are synchronous and environment-major. Actor selection receives only encoded local
 observations and the movement/communication masks. Critic evaluation receives only the separately
@@ -76,4 +77,50 @@ seed history within the recorded software/platform determinism boundary.
 
 The `rollout-smoke` command reports tensor shapes, transition count, completed episode count, root
 seed, device, and reset seeds. It performs no optimization, writes no checkpoint, and is not a
-benchmark. GAE, PPO losses, gradient updates, and learning claims remain outside Day 2.
+benchmark.
+
+## Day 3 advantage and optimization semantics
+
+Rollout rewards, team values, terminal bootstrap values, and episode boundaries have shape
+`[T, E]`; GAE expands them over the stable active-agent axis to `[T, E, A]`. For active sample
+`(t, e, a)`, the temporal-difference residual is
+
+```text
+delta[t,e,a] = reward[t,e] + gamma * bootstrap[t,e] - value[t,e]
+```
+
+`bootstrap` is zero for a true termination and otherwise is the terminal next-state value captured
+before any reset. A truncation can therefore bootstrap its residual, but termination and truncation
+both stop the recursive advantage from crossing the episode boundary. The recurrence also stops at
+an explicit next-step episode start or inactive agent slot. Invalid slots remain zero. Value targets
+are `value + unnormalized_advantage`; optional advantage normalization uses only valid samples,
+population variance, and the configured epsilon, and never changes the value targets.
+
+The actor loss uses the joint factored log probability
+`log pi(move,message) = log pi(move) + log pi(message)`. With
+`ratio = exp(new_joint_log_probability - old_joint_log_probability)`, policy loss is the negative
+mean of the minimum of the ordinary and clipped advantage-weighted surrogates. The critic receives
+only centralized state features and uses `0.5 * mean((predicted_value - value_target)^2)`. The total
+loss is
+
+```text
+policy_loss + value_coefficient * value_loss - entropy_coefficient * joint_entropy
+```
+
+Only valid active-agent transitions enter any reduction. Diagnostics include factor and joint
+entropy, approximate KL `mean((ratio - 1) - log(ratio))`, clip fraction, mean ratio, valid count, and
+explained variance when target variance is meaningful.
+
+One Adam optimizer owns the disjoint actor and critic parameter sets. Every PPO epoch shuffles valid
+samples with the explicit `optimizer/shuffle` Torch generator, consumes all minibatches including an
+uneven last batch, clears gradients, backpropagates, validates finite gradients, clips the combined
+gradient norm, steps Adam, and validates all resulting parameters. Invalid shapes or masks, empty
+valid batches, non-finite inputs/log probabilities/advantages/returns/ratios/losses/gradients, and
+corrupted copied configuration fail with a typed training error rather than being skipped or
+clamped.
+
+`update-smoke` collects one configured rollout, computes GAE, performs the configured bounded PPO
+epochs, and requires both actor and critic parameters to change while remaining finite. Its output
+explicitly identifies an optimization smoke test, not a benchmark or evidence that useful behavior
+has been learned. Full orchestration, checkpointing, resume, and saved-checkpoint evaluation remain
+Day 4 work.

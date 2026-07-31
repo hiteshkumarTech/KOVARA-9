@@ -65,8 +65,26 @@ factored actions and log probabilities, shared rewards, values, per-transition n
 live-agent slots, communication rejections, episode-start and end boundaries, environment IDs,
 transition IDs, and the fixed agent order. Terminal centralized state is evaluated before a reset;
 true terminations then receive a zero bootstrap, while truncations retain that terminal-state value.
-This prevents the next episode's initial value from leaking across a boundary. GAE and optimization
-remain Day 3 work and are not implemented by the Day 2 collector.
+This prevents the next episode's initial value from leaking across a boundary.
+
+GAE retains explicit time, environment, and agent axes. It uses centralized values without adding
+centralized features to actor samples, stops its recurrence at termination, truncation, reset, and
+inactive-agent boundaries, and excludes padded slots. True terminations have no bootstrap;
+time-limit truncations use the terminal-state value captured by the collector. Returns are formed
+from unnormalized advantages so optional normalization changes only the actor signal.
+
+The optimizer flattens only after GAE has separated trajectories, repeats each environment's
+centralized critic feature for its active homogeneous agent samples, and keeps local actor features
+in a separate typed field. It evaluates the stored factored action through the current shared actor,
+combines movement and message log probabilities into the PPO ratio, and evaluates the centralized
+critic independently. One Adam optimizer owns disjoint actor and critic parameters. Each epoch uses
+an explicit optimizer-shuffle generator, permits a smaller final minibatch, clips the joint gradient
+norm, and rejects non-finite inputs, ratios, losses, gradients, or parameters.
+
+This remains a feed-forward, shared-team-value, synchronous MAPPO-style simplification. There is no
+recurrent policy, value clipping, target-KL early stopping, distributed collector, checkpoint, or
+full training loop yet. The bounded `update-smoke` command proves only that a finite optimization
+step changes both networks; it is not evidence of learned behavior.
 
 ## Extension points
 
