@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 import structlog
 import torch
@@ -20,20 +21,33 @@ from kovara9.config.loader import (
     load_training_inputs,
 )
 from kovara9.config.models import EnvConfig, EvaluationConfig
-from kovara9.core.errors import ConfigurationError, KovaraError, NumericalError, TrainingError
+from kovara9.core.errors import (
+    ArtifactError,
+    ConfigurationError,
+    KovaraError,
+    NumericalError,
+    TrainingError,
+)
 from kovara9.core.seeding import derive_seed
 from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
-from kovara9.evaluation.runner import evaluate_policy
+from kovara9.evaluation.runner import EvaluationResult, PolicyFactory, evaluate_policy
 from kovara9.reporting.artifacts import ArtifactWriter
 from kovara9.reporting.summaries import comparison_summary
+from kovara9.training.checkpoint import checkpoint_sha256, load_training_checkpoint
 from kovara9.training.collector import SynchronousRolloutCollector
-from kovara9.training.config import TrainingConfig
+from kovara9.training.config import DeviceName, TrainingConfig
 from kovara9.training.encoding import ActorObservationEncoder, CentralStateEncoder
+from kovara9.training.evaluation import actor_policy_factory
 from kovara9.training.gae import compute_gae
 from kovara9.training.networks import CentralizedCritic, SharedActor
 from kovara9.training.optimization import PPOOptimizer
 from kovara9.training.runtime import configure_deterministic_algorithms, resolve_device
 from kovara9.training.seeds import ExperimentSeedStreams
+from kovara9.training.trainer import (
+    MAPPOTrainer,
+    actor_from_checkpoint,
+    untrained_actor_from_checkpoint_definition,
+)
 
 app = typer.Typer(
     name="kovara9",
@@ -85,6 +99,80 @@ def _policy_factory(name: str) -> type[Policy]:
 def _abort(exc: KovaraError) -> None:
     structlog.get_logger().error("command_failed", error=str(exc))
     raise typer.Exit(code=2) from exc
+
+
+def _resolve_requested_device(name: str) -> torch.device:
+    if name not in {"auto", "cpu", "cuda"}:
+        raise typer.BadParameter("device must be 'auto', 'cpu', or 'cuda'")
+    return resolve_device(cast(DeviceName, name))
+
+
+def _evaluation_environments(
+    evaluation: EvaluationConfig,
+    env_config: Path | None,
+) -> tuple[EnvConfig, EnvConfig | None, str]:
+    if evaluation.comparison is not None:
+        if env_config is not None:
+            raise ConfigurationError(
+                "--env-config must be omitted when the evaluation configuration "
+                "declares an authoritative comparison"
+            )
+        environment, held_out = load_comparison_environment_configs(evaluation)
+        return environment, held_out, str(evaluation.comparison.reference_environment)
+    if env_config is None:
+        raise ConfigurationError("--env-config is required when no comparison is declared")
+    return load_environment_config(env_config), None, str(env_config.resolve())
+
+
+def _evaluate_and_write(
+    *,
+    evaluation: EvaluationConfig,
+    environment: EnvConfig,
+    held_out_environment: EnvConfig | None,
+    policy_factory: PolicyFactory,
+    output: Path,
+) -> EvaluationResult:
+    result = evaluate_policy(
+        env_config=environment,
+        evaluation_config=evaluation,
+        policy_factory=policy_factory,
+    )
+    held_out_result = None
+    comparison = None
+    if held_out_environment is not None:
+        held_out_result = evaluate_policy(
+            env_config=held_out_environment,
+            evaluation_config=evaluation,
+            policy_factory=policy_factory,
+        )
+        comparison = comparison_summary(
+            result,
+            held_out_result,
+            environment,
+            held_out_environment,
+        )
+    ArtifactWriter(output).write(
+        env_config=environment,
+        evaluation_config=evaluation,
+        result=result,
+        held_out_env_config=held_out_environment,
+        held_out_result=held_out_result,
+        comparison=comparison,
+    )
+    return result
+
+
+def _atomic_cli_json(path: Path, payload: Any) -> None:
+    temporary = path.with_name(f".{path.name}.tmp")
+    try:
+        temporary.write_text(
+            json.dumps(payload, allow_nan=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        temporary.replace(path)
+    except (OSError, TypeError, ValueError) as exc:
+        raise ArtifactError(f"cannot write policy comparison artifact {path}: {exc}") from exc
 
 
 def _make_rollout_collector(
@@ -296,6 +384,51 @@ def update_smoke(
     )
 
 
+@app.command("train")
+def train(
+    training_config: Annotated[
+        Path,
+        typer.Option("--training-config", exists=True, dir_okay=False, readable=True),
+    ],
+    output: Annotated[Path, typer.Option("--output")] = Path("runs/training"),
+    resume_from: Annotated[
+        Path | None,
+        typer.Option("--resume-from", exists=True, dir_okay=False, readable=True),
+    ] = None,
+    stop_after_environment_steps: Annotated[
+        int | None,
+        typer.Option(
+            "--stop-after-environment-steps",
+            min=1,
+            help="Stop at an aligned checkpoint boundary for interruption/resume checks.",
+        ),
+    ] = None,
+) -> None:
+    """Run configured training and publish atomic checkpoints and metrics."""
+
+    try:
+        inputs = load_training_inputs(training_config)
+        result = MAPPOTrainer(inputs).train(
+            output_dir=output,
+            resume_from=resume_from,
+            stop_after_environment_steps=stop_after_environment_steps,
+        )
+    except KovaraError as exc:
+        _abort(exc)
+    structlog.get_logger().info(
+        "training_complete"
+        if result.progress.environment_steps == inputs.training.total_environment_steps
+        else "training_bounded",
+        benchmark=False,
+        useful_policy_learned=False,
+        output=str(output),
+        checkpoint=str(result.checkpoint),
+        environment_steps=result.progress.environment_steps,
+        optimizer_updates=result.progress.optimizer_updates,
+        completed_episodes=result.progress.completed_episodes,
+    )
+
+
 @environment_app.command("run")
 def run_environment(
     config: Annotated[Path, typer.Option("--config", exists=True, dir_okay=False)],
@@ -381,20 +514,9 @@ def evaluate(
 
     try:
         evaluation = load_evaluation_config(eval_config)
-        held_out_environment = None
-        if evaluation.comparison is not None:
-            if env_config is not None:
-                raise ConfigurationError(
-                    "--env-config must be omitted when the evaluation configuration "
-                    "declares an authoritative comparison"
-                )
-            environment, held_out_environment = load_comparison_environment_configs(evaluation)
-            environment_label = str(evaluation.comparison.reference_environment)
-        else:
-            if env_config is None:
-                raise ConfigurationError("--env-config is required when no comparison is declared")
-            environment = load_environment_config(env_config)
-            environment_label = str(env_config.resolve())
+        environment, held_out_environment, environment_label = _evaluation_environments(
+            evaluation, env_config
+        )
         policy_type = _policy_factory(agent)
         logger = structlog.get_logger()
         logger.info(
@@ -403,32 +525,12 @@ def evaluate(
             episodes=len(evaluation.resolved_seeds),
             environment=environment_label,
         )
-        result = evaluate_policy(
-            env_config=environment,
-            evaluation_config=evaluation,
+        result = _evaluate_and_write(
+            evaluation=evaluation,
+            environment=environment,
+            held_out_environment=held_out_environment,
             policy_factory=policy_type,
-        )
-        held_out_result = None
-        comparison = None
-        if held_out_environment is not None:
-            held_out_result = evaluate_policy(
-                env_config=held_out_environment,
-                evaluation_config=evaluation,
-                policy_factory=policy_type,
-            )
-            comparison = comparison_summary(
-                result,
-                held_out_result,
-                environment,
-                held_out_environment,
-            )
-        ArtifactWriter(output).write(
-            env_config=environment,
-            evaluation_config=evaluation,
-            result=result,
-            held_out_env_config=held_out_environment,
-            held_out_result=held_out_result,
-            comparison=comparison,
+            output=output,
         )
     except KovaraError as exc:
         _abort(exc)
@@ -436,6 +538,170 @@ def evaluate(
         "evaluation_complete",
         output=str(output),
         success_rate=result.summary.metrics["success_rate"].mean,
+    )
+
+
+@app.command("evaluate-checkpoint")
+def evaluate_checkpoint(
+    checkpoint: Annotated[
+        Path,
+        typer.Option("--checkpoint", exists=True, dir_okay=False, readable=True),
+    ],
+    eval_config: Annotated[
+        Path,
+        typer.Option("--eval-config", exists=True, dir_okay=False, readable=True),
+    ],
+    env_config: Annotated[
+        Path | None,
+        typer.Option("--env-config", exists=True, dir_okay=False, readable=True),
+    ] = None,
+    output: Annotated[Path, typer.Option("--output")] = Path("runs/checkpoint-evaluation"),
+    device: Annotated[str, typer.Option("--device")] = "cpu",
+) -> None:
+    """Evaluate a saved actor deterministically without constructing a critic."""
+
+    try:
+        loaded = load_training_checkpoint(checkpoint)
+        evaluation = load_evaluation_config(eval_config)
+        environment, held_out_environment, environment_label = _evaluation_environments(
+            evaluation, env_config
+        )
+        resolved_device = _resolve_requested_device(device)
+        configure_deterministic_algorithms(loaded.metadata.training_config.deterministic_torch)
+        actor = actor_from_checkpoint(
+            loaded,
+            environment=environment,
+            device=resolved_device,
+        )
+        policy_factory = actor_policy_factory(
+            actor=actor,
+            device=resolved_device,
+            policy_name="checkpoint-shared-actor",
+            parameters={
+                "checkpoint_sha256": checkpoint_sha256(checkpoint),
+                "deterministic": True,
+                "environment_steps": loaded.metadata.progress.environment_steps,
+                "training_seed": loaded.metadata.training_config.seed,
+            },
+        )
+        structlog.get_logger().info(
+            "checkpoint_evaluation_started",
+            checkpoint=str(checkpoint),
+            environment=environment_label,
+            device=str(resolved_device),
+        )
+        result = _evaluate_and_write(
+            evaluation=evaluation,
+            environment=environment,
+            held_out_environment=held_out_environment,
+            policy_factory=policy_factory,
+            output=output,
+        )
+    except KovaraError as exc:
+        _abort(exc)
+    structlog.get_logger().info(
+        "checkpoint_evaluation_complete",
+        output=str(output),
+        success_rate=result.summary.metrics["success_rate"].mean,
+    )
+
+
+@app.command("compare-policies")
+def compare_policies(
+    checkpoint: Annotated[
+        Path,
+        typer.Option("--checkpoint", exists=True, dir_okay=False, readable=True),
+    ],
+    eval_config: Annotated[
+        Path,
+        typer.Option("--eval-config", exists=True, dir_okay=False, readable=True),
+    ],
+    env_config: Annotated[
+        Path | None,
+        typer.Option("--env-config", exists=True, dir_okay=False, readable=True),
+    ] = None,
+    output: Annotated[Path, typer.Option("--output")] = Path("runs/policy-comparison"),
+    device: Annotated[str, typer.Option("--device")] = "cpu",
+) -> None:
+    """Compare random, frontier, untrained, and checkpoint actors on paired seeds."""
+
+    try:
+        loaded = load_training_checkpoint(checkpoint)
+        evaluation = load_evaluation_config(eval_config)
+        environment, held_out_environment, _label = _evaluation_environments(evaluation, env_config)
+        resolved_device = _resolve_requested_device(device)
+        configure_deterministic_algorithms(loaded.metadata.training_config.deterministic_torch)
+        trained_actor = actor_from_checkpoint(
+            loaded,
+            environment=environment,
+            device=resolved_device,
+        )
+        untrained_actor = untrained_actor_from_checkpoint_definition(
+            loaded,
+            environment=environment,
+            device=resolved_device,
+        )
+        checkpoint_identity = checkpoint_sha256(checkpoint)
+        factories: dict[str, PolicyFactory] = {
+            "random": RandomPolicy,
+            "frontier": FrontierPolicy,
+            "untrained": actor_policy_factory(
+                actor=untrained_actor,
+                device=resolved_device,
+                policy_name="untrained-shared-actor",
+                parameters={
+                    "deterministic": True,
+                    "training_seed": loaded.metadata.training_config.seed,
+                },
+            ),
+            "checkpoint": actor_policy_factory(
+                actor=trained_actor,
+                device=resolved_device,
+                policy_name="checkpoint-shared-actor",
+                parameters={
+                    "checkpoint_sha256": checkpoint_identity,
+                    "deterministic": True,
+                    "environment_steps": loaded.metadata.progress.environment_steps,
+                    "training_seed": loaded.metadata.training_config.seed,
+                },
+            ),
+        }
+        try:
+            output.mkdir(parents=True, exist_ok=False)
+        except FileExistsError as exc:
+            raise ArtifactError(f"output directory already exists: {output}") from exc
+        except OSError as exc:
+            raise ArtifactError(
+                f"cannot create policy comparison directory {output}: {exc}"
+            ) from exc
+        summaries: dict[str, dict[str, float]] = {}
+        for name, policy_factory in factories.items():
+            result = _evaluate_and_write(
+                evaluation=evaluation,
+                environment=environment,
+                held_out_environment=held_out_environment,
+                policy_factory=policy_factory,
+                output=output / name,
+            )
+            summaries[name] = {
+                metric: summary.mean for metric, summary in result.summary.metrics.items()
+            }
+        _atomic_cli_json(
+            output / "policy-comparison.json",
+            {
+                "schema_version": 1,
+                "status": "complete",
+                "checkpoint_sha256": checkpoint_identity,
+                "paired_episode_seeds": list(evaluation.resolved_seeds),
+                "policies": summaries,
+            },
+        )
+    except KovaraError as exc:
+        _abort(exc)
+    structlog.get_logger().info(
+        "policy_comparison_complete",
+        output=str(output),
+        policies=sorted(summaries),
     )
 
 

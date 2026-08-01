@@ -79,3 +79,18 @@ decentralized execution and centralized training mechanically separate and revie
 
 **Trade-off:** the initial actor has no recurrence and the critic estimates one shared team value.
 This is a documented MAPPO-style simplification, not a claim of reproducing every MAPPO variant.
+
+## ADR-009: exact rollout-boundary checkpoints
+
+**Decision:** checkpoint only after a complete rollout and PPO update, and persist the in-progress
+simulator states together with model, optimizer, counters, metric history, and explicit policy and
+minibatch RNG streams.
+
+**Rationale:** resetting environments or restoring only model weights changes the next on-policy
+rollout whenever a checkpoint falls inside an episode. Validated environment-state adapters preserve
+exact continuation without coupling the learner to grid-rescue transition rules or replaying an
+unbounded action history.
+
+**Trade-off:** checkpoints contain training-only critic and simulator state in addition to the actor.
+Saved-policy evaluation loads the actor separately and validates only decentralized
+observation/action compatibility.

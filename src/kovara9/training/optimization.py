@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 import torch
 from pydantic import ValidationError
@@ -269,6 +271,47 @@ class PPOOptimizer:
             valid_count,
             tuple(epoch_orders),
         )
+
+    def checkpoint_state(self) -> dict[str, Any]:
+        """Export optimizer slots and the explicit minibatch shuffle stream."""
+
+        return {
+            "schema_version": 1,
+            "optimizer": self.optimizer.state_dict(),
+            "shuffle_generator_state": self.shuffle_generator.get_state().cpu(),
+        }
+
+    def restore_checkpoint_state(self, raw_checkpoint: Mapping[str, Any]) -> None:
+        """Restore optimizer and shuffle state after configuration validation."""
+
+        expected_keys = {"schema_version", "optimizer", "shuffle_generator_state"}
+        if set(raw_checkpoint) != expected_keys or raw_checkpoint.get("schema_version") != 1:
+            raise TrainingError("optimizer checkpoint fields do not match schema version 1")
+        optimizer_state = raw_checkpoint["optimizer"]
+        if not isinstance(optimizer_state, Mapping):
+            raise TrainingError("optimizer checkpoint state must be a mapping")
+        generator_state = raw_checkpoint["shuffle_generator_state"]
+        if (
+            not isinstance(generator_state, Tensor)
+            or generator_state.dtype != torch.uint8
+            or generator_state.ndim != 1
+        ):
+            raise TrainingError("optimizer checkpoint shuffle RNG state is invalid")
+        try:
+            self.optimizer.load_state_dict(dict(optimizer_state))
+            self.shuffle_generator.set_state(generator_state.cpu())
+        except (RuntimeError, ValueError) as exc:
+            raise TrainingError("cannot restore optimizer checkpoint state") from exc
+        if not _finite_parameters(self.parameters):
+            raise NumericalError("optimizer checkpoint restored non-finite model parameters")
+        for state in self.optimizer.state.values():
+            for value in state.values():
+                if (
+                    isinstance(value, Tensor)
+                    and value.is_floating_point()
+                    and not bool(torch.isfinite(value).all())
+                ):
+                    raise NumericalError("optimizer checkpoint contains non-finite slot state")
 
 
 def _aggregate_diagnostics(

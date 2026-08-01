@@ -122,5 +122,27 @@ clamped.
 `update-smoke` collects one configured rollout, computes GAE, performs the configured bounded PPO
 epochs, and requires both actor and critic parameters to change while remaining finite. Its output
 explicitly identifies an optimization smoke test, not a benchmark or evidence that useful behavior
-has been learned. Full orchestration, checkpointing, resume, and saved-checkpoint evaluation remain
-Day 4 work.
+has been learned.
+
+## Day 4 checkpoint, resume, and evaluation semantics
+
+The full trainer advances only by `rollout_length * num_environments` joint environment steps. Each
+iteration collects one rollout, computes GAE, completes all configured PPO epochs, updates progress,
+optionally runs deterministic validation, writes the complete metric history atomically, and then
+publishes any scheduled checkpoint. A deliberately bounded `--stop-after-environment-steps` value
+must use the same rollout alignment and is labelled `bounded`, never complete.
+
+A checkpoint records actor and critic tensors, Adam state, environment-step/update/episode counters,
+all prior update records, both explicit Torch generator states, and each collector environment at the
+current transition boundary. Resume restores rather than reseeds or replays this state. It rejects
+changed training parameters, environment or validation contents, incompatible actor/critic/action
+signatures, misaligned counters, malformed metric history, and non-finite model or optimizer state.
+Deterministic equivalence is tested by comparing an uninterrupted run with a separately interrupted
+and resumed run, including model tensors, optimizer slots, collector state, RNG states, counters, and
+metrics.
+
+Scheduled validation and `evaluate-checkpoint` use masked deterministic actor inference from local
+observations only. The critic is not constructed for saved-checkpoint evaluation. The
+`compare-policies` workflow pairs random, frontier, untrained shared-actor, and checkpoint policies
+on the exact configured episode seeds; each policy receives its own complete artifact directory.
+Smoke training and validation remain pipeline evidence only.

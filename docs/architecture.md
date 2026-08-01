@@ -81,10 +81,27 @@ critic independently. One Adam optimizer owns disjoint actor and critic paramete
 an explicit optimizer-shuffle generator, permits a smaller final minibatch, clips the joint gradient
 norm, and rejects non-finite inputs, ratios, losses, gradients, or parameters.
 
+`MAPPOTrainer` owns the rollout/GAE/update schedule. Scheduled validation wraps the shared actor in
+the same environment-independent `Policy` protocol used by baselines. The wrapper encodes one local
+observation, applies its two masks, and selects deterministic modes; its API has no critic or
+central-state input. Saved-policy and untrained-neural comparison workflows reuse this adapter.
+
+Checkpoints are published only at complete rollout/update boundaries. They contain strict model
+states, Adam slots, progress counters, metric history, the policy-sampling and optimizer-shuffle
+generator states, and the collector's in-progress environment states. The environment exports and
+restores validated transition data through the collector protocol; training code does not mutate
+grid-rescue internals or replay actions. Resume validates training, environment, and validation
+fingerprints plus observation/state/action dimensions and stable agent order before restoring any
+state. Checkpoint evaluation validates only the decentralized observation/action signature, which
+allows compatible held-out environments without exposing centralized state to the actor.
+
+Training artifacts use a collision-safe run directory. Resolved configuration and provenance are
+written before optimization; metrics, checkpoints, and the manifest are individually replaced
+atomically, with the manifest referencing a checkpoint only after that checkpoint is complete.
+
 This remains a feed-forward, shared-team-value, synchronous MAPPO-style simplification. There is no
-recurrent policy, value clipping, target-KL early stopping, distributed collector, checkpoint, or
-full training loop yet. The bounded `update-smoke` command proves only that a finite optimization
-step changes both networks; it is not evidence of learned behavior.
+recurrent policy, value clipping, target-KL early stopping, or distributed collector. The smoke
+configuration proves pipeline and resume correctness only; it is not evidence of learned behavior.
 
 ## Extension points
 

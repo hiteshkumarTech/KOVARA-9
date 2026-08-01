@@ -233,3 +233,106 @@ def test_cli_update_smoke_changes_finite_actor_and_critic_parameters() -> None:
     assert record["valid_sample_count"] == 16
     assert record["minibatch_count"] == 2
     assert record["maximum_post_clip_gradient_norm"] <= 0.5
+
+
+@pytest.mark.integration
+def test_cli_training_checkpoint_evaluation_and_policy_comparison(tmp_path: Path) -> None:
+    environment = yaml.safe_load(
+        Path("configs/environments/grid_rescue_easy.yaml").read_text(encoding="utf-8")
+    )
+    environment["max_steps"] = 2
+    environment_path = tmp_path / "environment.yaml"
+    environment_path.write_text(yaml.safe_dump(environment), encoding="utf-8")
+    validation = {
+        "schema_version": 2,
+        "name": "day4-cli-validation",
+        "seeds": [10_000],
+        "bootstrap_samples": 0,
+        "bootstrap_confidence": 0.95,
+        "seed_partition": "validation",
+        "seed_partitions": {
+            "train": {"start": 0, "count": 10_000},
+            "validation": {"start": 10_000, "count": 1_000},
+            "test": {"start": 20_000, "count": 1_000},
+        },
+    }
+    validation_path = tmp_path / "validation.yaml"
+    validation_path.write_text(yaml.safe_dump(validation), encoding="utf-8")
+    training = yaml.safe_load(Path("configs/training/mappo_smoke.yaml").read_text(encoding="utf-8"))
+    training.update(
+        {
+            "environment_config": environment_path.name,
+            "validation_config": validation_path.name,
+            "rollout_length": 2,
+            "ppo_epochs": 1,
+            "minibatch_size": 4,
+            "total_environment_steps": 4,
+            "checkpoint_frequency": 2,
+            "evaluation_frequency": 4,
+        }
+    )
+    training_path = tmp_path / "training.yaml"
+    training_path.write_text(yaml.safe_dump(training), encoding="utf-8")
+
+    training_output = tmp_path / "training-run"
+    trained = runner.invoke(
+        app,
+        [
+            "--json-logs",
+            "train",
+            "--training-config",
+            str(training_path),
+            "--output",
+            str(training_output),
+        ],
+    )
+    assert trained.exit_code == 0, trained.stdout
+    training_record = json.loads(trained.stdout.strip())
+    assert training_record["event"] == "training_complete"
+    manifest = json.loads((training_output / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["status"] == "complete"
+    checkpoint = training_output / manifest["latest_checkpoint"]
+    assert checkpoint.exists()
+
+    evaluation_output = tmp_path / "checkpoint-evaluation"
+    evaluated = runner.invoke(
+        app,
+        [
+            "evaluate-checkpoint",
+            "--checkpoint",
+            str(checkpoint),
+            "--env-config",
+            str(environment_path),
+            "--eval-config",
+            str(validation_path),
+            "--output",
+            str(evaluation_output),
+        ],
+    )
+    assert evaluated.exit_code == 0, evaluated.stdout
+    evaluation_manifest = json.loads(
+        (evaluation_output / "manifest.json").read_text(encoding="utf-8")
+    )
+    assert evaluation_manifest["policy"]["name"] == "checkpoint-shared-actor"
+
+    comparison_output = tmp_path / "policy-comparison"
+    compared = runner.invoke(
+        app,
+        [
+            "compare-policies",
+            "--checkpoint",
+            str(checkpoint),
+            "--env-config",
+            str(environment_path),
+            "--eval-config",
+            str(validation_path),
+            "--output",
+            str(comparison_output),
+        ],
+    )
+    assert compared.exit_code == 0, compared.stdout
+    comparison = json.loads(
+        (comparison_output / "policy-comparison.json").read_text(encoding="utf-8")
+    )
+    assert comparison["status"] == "complete"
+    assert set(comparison["policies"]) == {"random", "frontier", "untrained", "checkpoint"}

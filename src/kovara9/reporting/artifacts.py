@@ -79,6 +79,7 @@ def _package_versions() -> dict[str, str]:
         "pydantic",
         "PyYAML",
         "structlog",
+        "torch",
         "typer",
     )
     versions = {"kovara9": __version__}
