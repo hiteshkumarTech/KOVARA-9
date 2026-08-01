@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "research_question": "Does the trained shared policy measurably improve over its untrained initialization and the random baseline on the validation environment?",
+  "conclusion": "no_qualifying_improvement",
+  "test_partition_consumed": false,
+  "smoke_is_benchmark": false,
+  "git": {
+    "base_commit": "41e470354d54f01e28df36ee9bda034e933e324c",
+    "artifact_dirty_tree": true,
+    "note": "Day 5 changes were present, but the Codex sandbox could not create .git/index.lock."
+  },
+  "runtime": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "architecture": "AMD64",
+    "processor": "Intel64 Family 6 Model 142 Stepping 10, GenuineIntel",
+    "logical_processors_visible": 8,
+    "python": "CPython 3.12.13",
+    "torch": "2.13.0",
+    "device": "cpu"
+  },
+  "configuration": {
+    "training_file": "configs/training/mappo_day5_short.yaml",
+    "environment_file": "configs/environments/grid_rescue_medium.yaml",
+    "validation_file": "configs/evaluation/training_validation.yaml",
+    "training_seed": 0,
+    "validation_seeds": [
+      10000,
+      10001,
+      10002,
+      10003,
+      10004,
+      10005,
+      10006,
+      10007,
+      10008,
+      10009,
+      10010,
+      10011,
+      10012,
+      10013,
+      10014,
+      10015,
+      10016,
+      10017,
+      10018,
+      10019
+    ],
+    "fingerprints": {
+      "training": "8c88b26910c0cc10db30ea4247b1881f233c959de3611253102eb12833fbbe9c",
+      "environment": "ce3e4200324577a6ffe22a4c6c60a80915ef0917abdee4e4e30799c39668f47b",
+      "validation": "2a936c9e551ee20f60d6b29b9efdae2c82bf8f1873e78d8f0b0e16de08d9eb09"
+    },
+    "network": {
+      "actor_hidden_sizes": [128, 128],
+      "critic_hidden_sizes": [128, 128],
+      "activation": "tanh"
+    },
+    "rollout_length": 64,
+    "num_environments": 2,
+    "ppo_epochs": 4,
+    "minibatch_size": 128,
+    "discount_factor": 0.99,
+    "gae_lambda": 0.95,
+    "clipping_coefficient": 0.2,
+    "entropy_coefficient": 0.01,
+    "value_coefficient": 0.5,
+    "maximum_gradient_norm": 0.5,
+    "learning_rate": 0.0003,
+    "total_environment_steps": 4096,
+    "checkpoint_frequency": 2048,
+    "evaluation_frequency": 2048
+  },
+  "model_identities": {
+    "initial_actor_sha256": "7fed8569fba32cfd9f06425478bf78288dc0c982dc4a2aa7c62ed10c3b1d9931",
+    "reconstructed_untrained_actor_sha256": "7fed8569fba32cfd9f06425478bf78288dc0c982dc4a2aa7c62ed10c3b1d9931",
+    "trained_actor_sha256": "da344fd09a97b882f5112bdd78689726a08ea028c9e7005ebde6fda075905ae6",
+    "best_and_latest_checkpoint_sha256": "e0119919bf8cd1a152108dadec08cd468f1f20cae344cd2fa0042a2cce195a8c"
+  },
+  "reward_audit": {
+    "scope": "shared team reward copied to every acting agent",
+    "components": {
+      "target_recovery": 1.0,
+      "success_bonus": 5.0,
+      "step_penalty": -0.01,
+      "message_penalty": -0.001
+    },
+    "medium_maximum_plausible_episode_return": 8.99,
+    "medium_no_recovery_lower_bound_with_all_communication_budget_used": -2.024,
+    "communication_budget_total": 24,
+    "reward_change_made": false
+  },
+  "training": {
+    "wall_clock_seconds": 91.16872340004193,
+    "environment_transitions": 4096,
+    "agent_transitions": 12288,
+    "optimizer_updates": 32,
+    "completed_training_episodes": 20,
+    "best_environment_step": 4096,
+    "latest_environment_step": 4096,
+    "best_equals_latest": true,
+    "validation_curve": [
+      {
+        "environment_steps": 0,
+        "success_rate": 0.0,
+        "exploration_coverage": 0.42838983050847457,
+        "target_recovery_rate": 0.05,
+        "duplicated_exploration": 0.1359398723373667
+      },
+      {
+        "environment_steps": 2048,
+        "success_rate": 0.0,
+        "exploration_coverage": 0.45974576271186446,
+        "target_recovery_rate": 0.025,
+        "duplicated_exploration": 0.15428267070293136
+      },
+      {
+        "environment_steps": 4096,
+        "success_rate": 0.0,
+        "exploration_coverage": 0.4872881355932203,
+        "target_recovery_rate": 0.05,
+        "duplicated_exploration": 0.17258829542574425
+      }
+    ]
+  },
+  "posttraining_policy_means": {
+    "random": {
+      "success_rate": 0.3,
+      "episode_length": 182.55,
+      "targets_recovered": 2.8,
+      "target_recovery_rate": 0.7,
+      "exploration_coverage": 0.93135593220339,
+      "duplicated_exploration": 0.44059716331085896,
+      "team_efficiency": 0.005645106357941807,
+      "communication_messages": 24.0,
+      "shared_return": 2.4505000000000017
+    },
+    "frontier": {
+      "success_rate": 0.9,
+      "episode_length": 56.4,
+      "targets_recovered": 3.8,
+      "target_recovery_rate": 0.95,
+      "exploration_coverage": 0.8631355932203391,
+      "duplicated_exploration": 0.45183286944745404,
+      "team_efficiency": 0.051697566078786505,
+      "communication_messages": 11.1,
+      "shared_return": 7.724900000000003
+    },
+    "untrained": {
+      "success_rate": 0.0,
+      "episode_length": 200.0,
+      "targets_recovered": 0.2,
+      "target_recovery_rate": 0.05,
+      "exploration_coverage": 0.42838983050847457,
+      "duplicated_exploration": 0.1359398723373667,
+      "team_efficiency": 0.0003333333333333334,
+      "communication_messages": 21.3,
+      "shared_return": -1.8213000000000008
+    },
+    "trained": {
+      "success_rate": 0.0,
+      "episode_length": 200.0,
+      "targets_recovered": 0.2,
+      "target_recovery_rate": 0.05,
+      "exploration_coverage": 0.4872881355932203,
+      "duplicated_exploration": 0.17258829542574425,
+      "team_efficiency": 0.0003333333333333334,
+      "communication_messages": 24.0,
+      "shared_return": -1.824000000000001
+    }
+  },
+  "paired_diagnostics": {
+    "trained_minus_untrained_coverage_mean": 0.058898305084745764,
+    "trained_vs_untrained_coverage_seed_counts": {
+      "better": 14,
+      "worse": 3,
+      "tied": 3
+    },
+    "trained_minus_untrained_success_rate": 0.0,
+    "trained_minus_untrained_targets_recovered": 0.0,
+    "trained_minus_random_success_rate": -0.3,
+    "trained_minus_random_targets_recovered": -2.6,
+    "trained_minus_random_coverage": -0.44406779661016954,
+    "trained_vs_random_target_seed_counts": {
+      "better": 0,
+      "worse": 20,
+      "tied": 0
+    }
+  },
+  "stability": {
+    "all_values_finite": true,
+    "entropy_first": 1.8557919561862946,
+    "entropy_last": 1.336615264415741,
+    "approximate_kl_min": 0.00021263728073487681,
+    "approximate_kl_max": 0.009931790448414782,
+    "clip_fraction_min": 0.0,
+    "clip_fraction_max": 0.248046875,
+    "explained_variance_min": -0.6881576875845591,
+    "explained_variance_max": 0.9669911017020544,
+    "pre_clip_gradient_norm_min": 0.4086838418734523,
+    "pre_clip_gradient_norm_max": 1.6979895093965971,
+    "post_clip_gradient_norm_max": 0.5000002189735344,
+    "communication_selection_rate_first": 0.125,
+    "communication_selection_rate_last": 0.03125,
+    "communication_always_silent_warning_updates": 11,
+    "last_move_action_frequencies": [
+      0.028645833333333332,
+      0.20572916666666666,
+      0.546875,
+      0.1171875,
+      0.1015625
+    ],
+    "diagnosis": "Numerically stable but behaviorally weak: entropy and communication declined, and one movement action reached 54.69 percent without full collapse. Only 20 training episodes supplied sparse target and success rewards."
+  },
+  "inference_performance_ms_batch_one": {
+    "random": 0.005985839496028485,
+    "frontier": 0.08020289598108747,
+    "untrained": 2.1877093833333334,
+    "trained": 2.0932788
+  },
+  "checkpoint_evaluation_reproducibility": {
+    "best_and_latest_checkpoint_equal": true,
+    "episodes_sha256": "de9f7eae65534068c765cac9d15a7e4f6d6b7aea2755c9a48efdc94e3491fb5a",
+    "summary_sha256": "07e4ff0d4e1120ce2fff7b1f636d19b789c61e6c6fea0956782c47720656ca7c"
+  },
+  "corrections": [],
+  "limitations": [
+    "One training seed and 20 completed training episodes are insufficient for a variance or generalization claim.",
+    "No held-out test seed was consumed.",
+    "Inference timing is platform-specific and sequential at batch size one.",
+    "The experiment artifacts record a dirty tree because Git metadata was read-only in the Codex sandbox."
+  ]
+}
