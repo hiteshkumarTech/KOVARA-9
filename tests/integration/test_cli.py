@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -320,6 +321,17 @@ def test_cli_training_checkpoint_evaluation_and_policy_comparison(  # noqa: PLR0
     assert (training_output / manifest["best_checkpoint"]).exists()
     assert manifest["progress"]["agent_transitions"] == 8
     assert manifest["wall_clock_seconds"] > 0.0
+    update_records = [
+        json.loads(line)
+        for line in (training_output / "metrics.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert update_records
+    assert all(
+        record["accepted_communication_count"] + record["rejected_communication_count"]
+        == record["selected_communication_count"]
+        for record in update_records
+    )
+    assert all(math.isfinite(record["mean_reward"]) for record in update_records)
 
     evaluation_output = tmp_path / "checkpoint-evaluation"
     evaluated = runner.invoke(
@@ -398,3 +410,51 @@ def test_cli_training_checkpoint_evaluation_and_policy_comparison(  # noqa: PLR0
     )
     assert forbidden.exit_code == 2
     assert "refuses test seeds" in forbidden.stdout
+
+
+@pytest.mark.integration
+def test_day6_seed_command_preserves_root_identity_and_rejects_test_partition(
+    tmp_path: Path,
+) -> None:
+    initialized = runner.invoke(
+        app,
+        [
+            "--json-logs",
+            "day6-run-seed",
+            "--training-config",
+            "configs/training/mappo_smoke.yaml",
+            "--root-seed",
+            "2",
+            "--output",
+            str(tmp_path / "day6-initial"),
+            "--initialize-only",
+        ],
+    )
+    assert initialized.exit_code == 0, initialized.stdout
+    record = json.loads(initialized.stdout.strip())
+    assert record["event"] == "day6_seed_initialized"
+    assert record["root_seed"] == 2
+    assert record["test_partition_consumed"] is False
+    manifest = json.loads((tmp_path / "day6-initial" / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["seed"] == 2
+
+    raw = yaml.safe_load(Path("configs/training/mappo_smoke.yaml").read_text(encoding="utf-8"))
+    raw["environment_config"] = str(Path("configs/environments/grid_rescue_easy.yaml").resolve())
+    raw["validation_config"] = str(Path("configs/evaluation/smoke.yaml").resolve())
+    forbidden_path = tmp_path / "forbidden-day6.yaml"
+    forbidden_path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    forbidden = runner.invoke(
+        app,
+        [
+            "day6-run-seed",
+            "--training-config",
+            str(forbidden_path),
+            "--root-seed",
+            "0",
+            "--output",
+            str(tmp_path / "forbidden-output"),
+            "--initialize-only",
+        ],
+    )
+    assert forbidden.exit_code == 2
+    assert "validation seed partition" in forbidden.stdout

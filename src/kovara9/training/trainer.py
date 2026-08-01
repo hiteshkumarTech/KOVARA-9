@@ -64,6 +64,13 @@ class TrainingUpdateRecord(StrictModel):
     move_action_frequencies: tuple[float, ...] = ()
     message_action_frequencies: tuple[float, ...] = ()
     communication_selection_rate: float = Field(default=0.0, ge=0.0, le=1.0)
+    selected_communication_count: int = Field(default=0, ge=0)
+    accepted_communication_count: int = Field(default=0, ge=0)
+    rejected_communication_count: int = Field(default=0, ge=0)
+    mean_reward: float = 0.0
+    reward_standard_deviation: float = Field(default=0.0, ge=0.0)
+    minimum_reward: float = 0.0
+    maximum_reward: float = 0.0
     stability_warnings: tuple[str, ...] = ()
     best_validation: bool = False
 
@@ -75,6 +82,20 @@ class _LearnerComponents:
     collector: SynchronousRolloutCollector
     optimizer: PPOOptimizer
     signature: LearnerSignature
+
+
+@dataclass(frozen=True, slots=True)
+class _RolloutDiagnostics:
+    move_action_frequencies: tuple[float, ...]
+    message_action_frequencies: tuple[float, ...]
+    communication_selection_rate: float
+    selected_communication_count: int
+    accepted_communication_count: int
+    rejected_communication_count: int
+    mean_reward: float
+    reward_standard_deviation: float
+    minimum_reward: float
+    maximum_reward: float
 
 
 def probe_learner_signature(environment: EnvConfig) -> LearnerSignature:
@@ -237,13 +258,14 @@ class MAPPOTrainer:
                 )
                 if is_best_validation:
                     best_validation = validation_metrics
-                move_frequencies, message_frequencies, communication_rate = (
-                    self._action_diagnostics(collection.batch, components.signature)
+                rollout_diagnostics = self._rollout_diagnostics(
+                    collection.batch,
+                    components.signature,
                 )
                 stability_warnings = self._stability_warnings(
                     update,
-                    move_frequencies=move_frequencies,
-                    communication_rate=communication_rate,
+                    move_frequencies=rollout_diagnostics.move_action_frequencies,
+                    communication_rate=rollout_diagnostics.communication_selection_rate,
                 )
                 records.append(
                     self._training_record(
@@ -251,9 +273,7 @@ class MAPPOTrainer:
                         update,
                         rollout_completed_episodes=len(collection.completed_episodes),
                         validation_metrics=validation_metrics,
-                        move_action_frequencies=move_frequencies,
-                        message_action_frequencies=message_frequencies,
-                        communication_selection_rate=communication_rate,
+                        rollout_diagnostics=rollout_diagnostics,
                         stability_warnings=stability_warnings,
                         best_validation=is_best_validation,
                     )
@@ -467,9 +487,7 @@ class MAPPOTrainer:
         *,
         rollout_completed_episodes: int,
         validation_metrics: dict[str, float] | None,
-        move_action_frequencies: tuple[float, ...],
-        message_action_frequencies: tuple[float, ...],
-        communication_selection_rate: float,
+        rollout_diagnostics: _RolloutDiagnostics,
         stability_warnings: tuple[str, ...],
         best_validation: bool,
     ) -> TrainingUpdateRecord:
@@ -493,18 +511,25 @@ class MAPPOTrainer:
             valid_sample_count=update.valid_sample_count,
             minibatch_count=update.minibatch_count,
             validation_metrics=validation_metrics,
-            move_action_frequencies=move_action_frequencies,
-            message_action_frequencies=message_action_frequencies,
-            communication_selection_rate=communication_selection_rate,
+            move_action_frequencies=rollout_diagnostics.move_action_frequencies,
+            message_action_frequencies=rollout_diagnostics.message_action_frequencies,
+            communication_selection_rate=rollout_diagnostics.communication_selection_rate,
+            selected_communication_count=rollout_diagnostics.selected_communication_count,
+            accepted_communication_count=rollout_diagnostics.accepted_communication_count,
+            rejected_communication_count=rollout_diagnostics.rejected_communication_count,
+            mean_reward=rollout_diagnostics.mean_reward,
+            reward_standard_deviation=rollout_diagnostics.reward_standard_deviation,
+            minimum_reward=rollout_diagnostics.minimum_reward,
+            maximum_reward=rollout_diagnostics.maximum_reward,
             stability_warnings=stability_warnings,
             best_validation=best_validation,
         )
 
     @staticmethod
-    def _action_diagnostics(
+    def _rollout_diagnostics(
         batch: RolloutBatch,
         signature: LearnerSignature,
-    ) -> tuple[tuple[float, ...], tuple[float, ...], float]:
+    ) -> _RolloutDiagnostics:
         active = batch.active_agents
         valid_count = int(active.sum().item())
         if valid_count <= 0:
@@ -516,8 +541,23 @@ class MAPPOTrainer:
 
         move = frequencies(batch.move_actions, signature.move_action_count)
         message = frequencies(batch.message_actions, signature.message_action_count)
-        communication_rate = float((batch.message_actions[active] != 0).sum().item()) / valid_count
-        return move, message, communication_rate
+        selected = int((batch.message_actions[active] != 0).sum().item())
+        rejected = int(batch.communication_rejections[active].sum().item())
+        if rejected > selected:
+            raise TrainingError("rejected communication count exceeds selected messages")
+        rewards = batch.rewards
+        return _RolloutDiagnostics(
+            move_action_frequencies=move,
+            message_action_frequencies=message,
+            communication_selection_rate=selected / valid_count,
+            selected_communication_count=selected,
+            accepted_communication_count=selected - rejected,
+            rejected_communication_count=rejected,
+            mean_reward=float(rewards.mean().item()),
+            reward_standard_deviation=float(rewards.std(unbiased=False).item()),
+            minimum_reward=float(rewards.min().item()),
+            maximum_reward=float(rewards.max().item()),
+        )
 
     def _stability_warnings(
         self,

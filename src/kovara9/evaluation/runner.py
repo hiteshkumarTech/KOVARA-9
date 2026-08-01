@@ -113,6 +113,7 @@ def run_episode(
         )
     agent_steps = 0
     messages = 0
+    rejected_messages = 0
     shared_return = 0.0
     success = False
     termination_reason = "time_limit"
@@ -128,6 +129,9 @@ def run_episode(
         observations, rewards, terminations, truncations, infos = env.step(actions)
         agent_steps += len(acting_agents)
         messages += env.last_events.messages_sent
+        rejected_messages += sum(
+            bool(infos[agent]["communication_rejected"]) for agent in acting_agents
+        )
         if rewards:
             shared_return += next(iter(rewards.values()))
         for agent in acting_agents:
@@ -161,6 +165,7 @@ def run_episode(
         exploration_coverage=exploration_coverage(observed.values(), reachable),
         duplicated_exploration=duplicated_exploration(observed.values()),
         communication_messages=messages,
+        communication_rejections=rejected_messages,
         messages_per_agent_step=messages / agent_steps if agent_steps else 0.0,
         team_efficiency=team_efficiency(len(final_snapshot.recovered_targets), agent_steps),
         shared_return=shared_return,

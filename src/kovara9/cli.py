@@ -32,6 +32,11 @@ from kovara9.core.errors import (
 from kovara9.core.seeding import derive_seed
 from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.evaluation.runner import EvaluationResult, PolicyFactory, evaluate_policy
+from kovara9.experiments.day6 import (
+    load_candidate_freeze,
+    load_day6_training_inputs,
+    validate_candidate_freeze,
+)
 from kovara9.reporting.artifacts import ArtifactWriter
 from kovara9.reporting.summaries import comparison_summary
 from kovara9.training.checkpoint import (
@@ -248,6 +253,32 @@ def validate_config(
     )
 
 
+@config_app.command("verify-candidate")
+def verify_candidate(
+    candidate: Annotated[
+        Path,
+        typer.Option("--candidate", exists=True, dir_okay=False, readable=True),
+    ],
+    freeze_record: Annotated[
+        Path,
+        typer.Option("--freeze-record", exists=True, dir_okay=False, readable=True),
+    ],
+) -> None:
+    """Verify that a frozen candidate and every bound experiment identity still match."""
+
+    try:
+        freeze = load_candidate_freeze(freeze_record)
+        validate_candidate_freeze(candidate, freeze)
+    except KovaraError as exc:
+        _abort(exc)
+    structlog.get_logger().info(
+        "candidate_freeze_verified",
+        candidate=str(candidate),
+        configuration_fingerprint=freeze.configuration_fingerprint,
+        test_partition_consumed=False,
+    )
+
+
 @app.command("rollout-smoke")
 def rollout_smoke(
     training_config: Annotated[
@@ -443,6 +474,47 @@ def train(
         else "training_bounded",
         benchmark=False,
         useful_policy_learned=False,
+        output=str(output),
+        checkpoint=str(result.checkpoint),
+        environment_steps=result.progress.environment_steps,
+        optimizer_updates=result.progress.optimizer_updates,
+        completed_episodes=result.progress.completed_episodes,
+    )
+
+
+@app.command("day6-run-seed")
+def day6_run_seed(
+    training_config: Annotated[
+        Path,
+        typer.Option("--training-config", exists=True, dir_okay=False, readable=True),
+    ],
+    root_seed: Annotated[int, typer.Option("--root-seed", min=0)],
+    output: Annotated[Path, typer.Option("--output")],
+    initialize_only: Annotated[
+        bool,
+        typer.Option(
+            "--initialize-only",
+            help="Save the exact Day 6 initialization before its training run.",
+        ),
+    ] = False,
+) -> None:
+    """Run one controlled Day 6 root seed using validation evidence only."""
+
+    try:
+        inputs = load_day6_training_inputs(training_config, root_seed=root_seed)
+        trainer = MAPPOTrainer(inputs)
+        result = (
+            trainer.initialize(output_dir=output)
+            if initialize_only
+            else trainer.train(output_dir=output)
+        )
+    except KovaraError as exc:
+        _abort(exc)
+    structlog.get_logger().info(
+        "day6_seed_initialized" if initialize_only else "day6_seed_training_complete",
+        benchmark=False,
+        test_partition_consumed=False,
+        root_seed=root_seed,
         output=str(output),
         checkpoint=str(result.checkpoint),
         environment_steps=result.progress.environment_steps,

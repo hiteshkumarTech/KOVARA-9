@@ -113,6 +113,7 @@ def aggregate_records(
         "exploration_coverage": [record.exploration_coverage for record in records],
         "duplicated_exploration": [record.duplicated_exploration for record in records],
         "communication_messages": [float(record.communication_messages) for record in records],
+        "communication_rejections": [float(record.communication_rejections) for record in records],
         "messages_per_agent_step": [record.messages_per_agent_step for record in records],
         "team_efficiency": [record.team_efficiency for record in records],
         "shared_return": [record.shared_return for record in records],

@@ -18,6 +18,7 @@ class EpisodeRecord:
     exploration_coverage: float
     duplicated_exploration: float
     communication_messages: int
+    communication_rejections: int
     messages_per_agent_step: float
     team_efficiency: float
     shared_return: float

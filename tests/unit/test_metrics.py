@@ -27,6 +27,7 @@ def _record(seed: int, success: bool) -> EpisodeRecord:
         exploration_coverage=0.5,
         duplicated_exploration=0.25,
         communication_messages=2,
+        communication_rejections=1,
         messages_per_agent_step=0.1,
         team_efficiency=0.05,
         shared_return=1.0,
@@ -58,6 +59,7 @@ def test_aggregation_and_generalization_are_deterministic() -> None:
     assert first == second
     assert first.metrics["success_rate"].mean == 0.5
     assert first.metrics["episode_length"].standard_deviation == 0
+    assert first.metrics["communication_rejections"].mean == 1
     assert generalization_gap(records, [_record(3, False)]) == 0.5
 
 
