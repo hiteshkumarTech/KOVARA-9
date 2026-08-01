@@ -6,6 +6,7 @@ import yaml
 from typer.testing import CliRunner
 
 from kovara9.cli import app
+from kovara9.training.checkpoint import load_training_checkpoint, model_state_sha256
 
 runner = CliRunner()
 
@@ -236,7 +237,9 @@ def test_cli_update_smoke_changes_finite_actor_and_critic_parameters() -> None:
 
 
 @pytest.mark.integration
-def test_cli_training_checkpoint_evaluation_and_policy_comparison(tmp_path: Path) -> None:
+def test_cli_training_checkpoint_evaluation_and_policy_comparison(  # noqa: PLR0915
+    tmp_path: Path,
+) -> None:
     environment = yaml.safe_load(
         Path("configs/environments/grid_rescue_easy.yaml").read_text(encoding="utf-8")
     )
@@ -274,6 +277,27 @@ def test_cli_training_checkpoint_evaluation_and_policy_comparison(tmp_path: Path
     training_path = tmp_path / "training.yaml"
     training_path.write_text(yaml.safe_dump(training), encoding="utf-8")
 
+    initial_output = tmp_path / "initial-run"
+    initialized = runner.invoke(
+        app,
+        [
+            "--json-logs",
+            "train",
+            "--training-config",
+            str(training_path),
+            "--output",
+            str(initial_output),
+            "--initialize-only",
+        ],
+    )
+    assert initialized.exit_code == 0, initialized.stdout
+    assert json.loads(initialized.stdout.strip())["event"] == "training_initialized"
+    initial_manifest = json.loads((initial_output / "manifest.json").read_text(encoding="utf-8"))
+    initial_checkpoint = initial_output / initial_manifest["latest_checkpoint"]
+    initial_actor_identity = model_state_sha256(
+        load_training_checkpoint(initial_checkpoint).actor_state
+    )
+
     training_output = tmp_path / "training-run"
     trained = runner.invoke(
         app,
@@ -293,6 +317,9 @@ def test_cli_training_checkpoint_evaluation_and_policy_comparison(tmp_path: Path
     assert manifest["status"] == "complete"
     checkpoint = training_output / manifest["latest_checkpoint"]
     assert checkpoint.exists()
+    assert (training_output / manifest["best_checkpoint"]).exists()
+    assert manifest["progress"]["agent_transitions"] == 8
+    assert manifest["wall_clock_seconds"] > 0.0
 
     evaluation_output = tmp_path / "checkpoint-evaluation"
     evaluated = runner.invoke(
@@ -314,6 +341,7 @@ def test_cli_training_checkpoint_evaluation_and_policy_comparison(tmp_path: Path
         (evaluation_output / "manifest.json").read_text(encoding="utf-8")
     )
     assert evaluation_manifest["policy"]["name"] == "checkpoint-shared-actor"
+    assert evaluation_manifest["inference_performance"]["call_count"] > 0
 
     comparison_output = tmp_path / "policy-comparison"
     compared = runner.invoke(
@@ -336,3 +364,37 @@ def test_cli_training_checkpoint_evaluation_and_policy_comparison(tmp_path: Path
     )
     assert comparison["status"] == "complete"
     assert set(comparison["policies"]) == {"random", "frontier", "untrained", "checkpoint"}
+    assert comparison["paired_episode_seeds"] == [10_000]
+    assert comparison["paired_results"][0]["seed"] == 10_000
+    assert set(comparison["paired_results"][0]["policies"]) == {
+        "random",
+        "frontier",
+        "untrained",
+        "checkpoint",
+    }
+    assert (
+        comparison["policy_parameters"]["untrained"]["actor_state_sha256"] == initial_actor_identity
+    )
+    assert comparison["inference_performance"]["checkpoint"]["call_count"] > 0
+
+    validation["name"] = "forbidden-test-comparison"
+    validation["seeds"] = [20_000]
+    validation["seed_partition"] = "test"
+    test_validation_path = tmp_path / "test-validation.yaml"
+    test_validation_path.write_text(yaml.safe_dump(validation), encoding="utf-8")
+    forbidden = runner.invoke(
+        app,
+        [
+            "compare-policies",
+            "--checkpoint",
+            str(checkpoint),
+            "--env-config",
+            str(environment_path),
+            "--eval-config",
+            str(test_validation_path),
+            "--output",
+            str(tmp_path / "forbidden-test-output"),
+        ],
+    )
+    assert forbidden.exit_code == 2
+    assert "refuses test seeds" in forbidden.stdout

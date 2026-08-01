@@ -106,6 +106,10 @@ def aggregate_records(
     metric_values = {
         "success_rate": [float(record.success) for record in records],
         "episode_length": [float(record.episode_length) for record in records],
+        "targets_recovered": [float(record.targets_recovered) for record in records],
+        "target_recovery_rate": [
+            record.targets_recovered / record.total_targets for record in records
+        ],
         "exploration_coverage": [record.exploration_coverage for record in records],
         "duplicated_exploration": [record.duplicated_exploration for record in records],
         "communication_messages": [float(record.communication_messages) for record in records],

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import platform
+import shutil
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Literal
@@ -76,6 +77,9 @@ class TrainingArtifactWriter:
                     status="running",
                     progress=TrainingProgress(0, 0, 0),
                     latest_checkpoint=None,
+                    best_checkpoint=None,
+                    best_validation=None,
+                    wall_clock_seconds=0.0,
                 ),
             )
         except FileExistsError as exc:
@@ -99,13 +103,16 @@ class TrainingArtifactWriter:
             raise ArtifactError(f"training metrics are not JSON serializable: {exc}") from exc
         self._atomic_text("metrics.jsonl", text)
 
-    def update_manifest(
+    def update_manifest(  # noqa: PLR0913
         self,
         inputs: TrainingInputs,
         *,
         status: TrainingArtifactStatus,
         progress: TrainingProgress,
         latest_checkpoint: Path,
+        best_checkpoint: Path | None,
+        best_validation: Mapping[str, float] | None,
+        wall_clock_seconds: float,
     ) -> None:
         """Publish progress only after the referenced checkpoint is complete."""
 
@@ -117,6 +124,9 @@ class TrainingArtifactWriter:
                 status=status,
                 progress=progress,
                 latest_checkpoint=latest_checkpoint,
+                best_checkpoint=best_checkpoint,
+                best_validation=best_validation,
+                wall_clock_seconds=wall_clock_seconds,
             ),
         )
 
@@ -126,16 +136,33 @@ class TrainingArtifactWriter:
         self._require_started()
         return self.output_dir / "checkpoints" / f"step-{environment_steps:012d}.pt"
 
-    def _manifest(
+    def publish_best_checkpoint(self, source: Path) -> Path:
+        """Atomically copy an immutable validated checkpoint to the best alias."""
+
+        self._require_started()
+        destination = self.output_dir / "checkpoints" / "best.pt"
+        temporary = destination.with_name(f".{destination.name}.tmp")
+        try:
+            shutil.copyfile(source, temporary)
+            temporary.replace(destination)
+        except OSError as exc:
+            temporary.unlink(missing_ok=True)
+            raise ArtifactError(f"cannot publish best checkpoint {destination}: {exc}") from exc
+        return destination
+
+    def _manifest(  # noqa: PLR0913
         self,
         inputs: TrainingInputs,
         *,
         status: TrainingArtifactStatus,
         progress: TrainingProgress,
         latest_checkpoint: Path | None,
+        best_checkpoint: Path | None,
+        best_validation: Mapping[str, float] | None,
+        wall_clock_seconds: float,
     ) -> dict[str, Any]:
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "status": status,
             "algorithm": inputs.training.algorithm,
             "seed": inputs.training.seed,
@@ -146,6 +173,7 @@ class TrainingArtifactWriter:
             },
             "progress": {
                 "environment_steps": progress.environment_steps,
+                "agent_transitions": (progress.environment_steps * inputs.environment.num_agents),
                 "optimizer_updates": progress.optimizer_updates,
                 "completed_episodes": progress.completed_episodes,
             },
@@ -154,6 +182,13 @@ class TrainingArtifactWriter:
                 if latest_checkpoint is not None
                 else None
             ),
+            "best_checkpoint": (
+                str(best_checkpoint.relative_to(self.output_dir))
+                if best_checkpoint is not None
+                else None
+            ),
+            "best_validation": dict(best_validation) if best_validation is not None else None,
+            "wall_clock_seconds": wall_clock_seconds,
         }
 
     def _require_started(self) -> None:

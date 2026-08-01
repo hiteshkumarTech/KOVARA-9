@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from time import perf_counter_ns
 from types import MappingProxyType
+from typing import Any
 
 from kovara9.agents.policy import Policy, PolicyTransitionInfo
 from kovara9.config.models import EnvConfig, EvaluationConfig
@@ -23,12 +25,47 @@ PolicyFactory = Callable[[], Policy]
 
 
 @dataclass(frozen=True, slots=True)
+class InferencePerformance:
+    """Observed policy-call timing, kept separate from deterministic episode metrics."""
+
+    call_count: int
+    total_seconds: float
+    mean_latency_ms: float
+    batch_size: int = 1
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-compatible mapping."""
+
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class _InferenceTimer:
+    call_count: int = 0
+    total_nanoseconds: int = 0
+
+    def observe(self, elapsed_nanoseconds: int) -> None:
+        self.call_count += 1
+        self.total_nanoseconds += elapsed_nanoseconds
+
+    def result(self) -> InferencePerformance:
+        return InferencePerformance(
+            call_count=self.call_count,
+            total_seconds=self.total_nanoseconds / 1_000_000_000,
+            mean_latency_ms=(
+                self.total_nanoseconds / self.call_count / 1_000_000 if self.call_count else 0.0
+            ),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class EvaluationResult:
     """One complete, in-memory evaluation suite."""
 
     records: tuple[EpisodeRecord, ...]
     summary: EvaluationSummary
     policy_parameters: Mapping[str, bool | float | int | str]
+    inference_performance: InferencePerformance = InferencePerformance(0, 0.0, 0.0)
 
 
 def _visible_reachable_cells(
@@ -54,6 +91,7 @@ def run_episode(
     env_config: EnvConfig,
     seed: int,
     policy_factory: PolicyFactory,
+    inference_timer: _InferenceTimer | None = None,
 ) -> EpisodeRecord:
     """Run one episode and calculate metrics from factual simulator state."""
 
@@ -81,7 +119,12 @@ def run_episode(
 
     while env.agents:
         acting_agents = tuple(env.agents)
-        actions = {agent: policies[agent].act(observations[agent]) for agent in acting_agents}
+        actions: dict[str, dict[str, int]] = {}
+        for agent in acting_agents:
+            started = perf_counter_ns()
+            actions[agent] = policies[agent].act(observations[agent])
+            if inference_timer is not None:
+                inference_timer.observe(perf_counter_ns() - started)
         observations, rewards, terminations, truncations, infos = env.step(actions)
         agent_steps += len(acting_agents)
         messages += env.last_events.messages_sent
@@ -140,8 +183,14 @@ def evaluate_policy(
         evaluation_config.model_dump(mode="python", round_trip=True)
     )
     probe = policy_factory()
+    inference_timer = _InferenceTimer()
     records = tuple(
-        run_episode(env_config=env_config, seed=seed, policy_factory=policy_factory)
+        run_episode(
+            env_config=env_config,
+            seed=seed,
+            policy_factory=policy_factory,
+            inference_timer=inference_timer,
+        )
         for seed in evaluation_config.resolved_seeds
     )
     summary = aggregate_records(records, evaluation_config, probe.name)
@@ -149,4 +198,5 @@ def evaluate_policy(
         records=records,
         summary=summary,
         policy_parameters=MappingProxyType(dict(probe.parameters)),
+        inference_performance=inference_timer.result(),
     )

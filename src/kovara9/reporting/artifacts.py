@@ -178,6 +178,7 @@ class ArtifactWriter:
                 "name": result.summary.policy,
                 "parameters": dict(result.policy_parameters),
             },
+            "inference_performance": result.inference_performance.to_dict(),
             "configured_episode_seeds": list(configured_seeds),
             "executed_episode_seeds": list(executed_seeds),
             "python": {
@@ -197,6 +198,10 @@ class ArtifactWriter:
             )
             self._write_jsonl("episodes.jsonl", [record.to_dict() for record in result.records])
             self._write_json("summary.json", result.summary.to_dict())
+            self._write_json(
+                "inference-performance.json",
+                result.inference_performance.to_dict(),
+            )
             if held_out_env_config is not None and held_out_result is not None:
                 self._write_yaml(
                     "held_out_environment.resolved.yaml",

@@ -20,13 +20,16 @@ from kovara9.training.checkpoint import (
     LoadedCheckpoint,
     checkpoint_sha256,
     load_training_checkpoint,
+    model_state_sha256,
     training_definition_fingerprint,
 )
+from kovara9.training.optimization import PPOUpdateDiagnostics
 from kovara9.training.protocols import TrainingProgress
 from kovara9.training.trainer import (
     MAPPOTrainer,
     actor_from_checkpoint,
     probe_learner_signature,
+    validation_selection_key,
 )
 
 
@@ -303,3 +306,60 @@ def test_checkpoint_loader_and_hash_reject_missing_or_malformed_files(tmp_path: 
     torch.save({"metadata": {}}, wrong_fields)
     with pytest.raises(TrainingError, match="fields do not match"):
         load_training_checkpoint(wrong_fields)
+
+
+def test_initial_checkpoint_has_exact_declared_actor_identity(tmp_path: Path) -> None:
+    inputs = _smoke_inputs()
+    initial = MAPPOTrainer(inputs).initialize(output_dir=tmp_path / "initial")
+    first = load_training_checkpoint(initial.checkpoint)
+    second = load_training_checkpoint(
+        MAPPOTrainer(inputs).initialize(output_dir=tmp_path / "second").checkpoint
+    )
+
+    assert initial.progress == TrainingProgress(0, 0, 0)
+    assert model_state_sha256(first.actor_state) == model_state_sha256(second.actor_state)
+    assert first.training_records == ()
+
+
+def test_validation_selection_and_pathology_warnings_are_predeclared() -> None:
+    base = {
+        "success_rate": 0.0,
+        "exploration_coverage": 0.4,
+        "team_efficiency": 0.01,
+        "duplicated_exploration": 0.5,
+        "episode_length": 100.0,
+    }
+    improved = {**base, "exploration_coverage": 0.5}
+    assert validation_selection_key(improved) > validation_selection_key(base)
+    with pytest.raises(TrainingError, match="missing selection fields"):
+        validation_selection_key({"success_rate": 1.0})
+
+    diagnostics = PPOUpdateDiagnostics(
+        total_loss=0.0,
+        policy_loss=0.0,
+        value_loss=0.0,
+        entropy=0.0,
+        move_entropy=0.0,
+        message_entropy=0.0,
+        approximate_kl=0.3,
+        clip_fraction=1.0,
+        mean_probability_ratio=1.0,
+        explained_variance=0.0,
+        maximum_pre_clip_gradient_norm=0.0,
+        maximum_post_clip_gradient_norm=0.0,
+        valid_sample_count=1,
+        minibatch_count=1,
+        epoch_sample_orders=((0,),),
+    )
+    warnings = MAPPOTrainer(_smoke_inputs())._stability_warnings(
+        diagnostics,
+        move_frequencies=(1.0, 0.0, 0.0, 0.0, 0.0),
+        communication_rate=0.0,
+    )
+    assert set(warnings) == {
+        "near-zero-gradient",
+        "excessive-approximate-kl",
+        "all-samples-clipped",
+        "movement-action-collapse",
+        "communication-always-silent",
+    }

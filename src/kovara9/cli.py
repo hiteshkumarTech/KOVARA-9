@@ -15,6 +15,7 @@ from kovara9.agents.policy import Policy, PolicyTransitionInfo
 from kovara9.agents.random import RandomPolicy
 from kovara9.config.loader import (
     TrainingInputs,
+    configuration_fingerprint,
     load_comparison_environment_configs,
     load_environment_config,
     load_evaluation_config,
@@ -33,7 +34,11 @@ from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.evaluation.runner import EvaluationResult, PolicyFactory, evaluate_policy
 from kovara9.reporting.artifacts import ArtifactWriter
 from kovara9.reporting.summaries import comparison_summary
-from kovara9.training.checkpoint import checkpoint_sha256, load_training_checkpoint
+from kovara9.training.checkpoint import (
+    checkpoint_sha256,
+    load_training_checkpoint,
+    model_state_sha256,
+)
 from kovara9.training.collector import SynchronousRolloutCollector
 from kovara9.training.config import DeviceName, TrainingConfig
 from kovara9.training.encoding import ActorObservationEncoder, CentralStateEncoder
@@ -403,20 +408,37 @@ def train(
             help="Stop at an aligned checkpoint boundary for interruption/resume checks.",
         ),
     ] = None,
+    initialize_only: Annotated[
+        bool,
+        typer.Option(
+            "--initialize-only",
+            help="Save the exact untrained state without collecting or optimizing.",
+        ),
+    ] = False,
 ) -> None:
     """Run configured training and publish atomic checkpoints and metrics."""
 
     try:
         inputs = load_training_inputs(training_config)
-        result = MAPPOTrainer(inputs).train(
-            output_dir=output,
-            resume_from=resume_from,
-            stop_after_environment_steps=stop_after_environment_steps,
-        )
+        trainer = MAPPOTrainer(inputs)
+        if initialize_only:
+            if resume_from is not None or stop_after_environment_steps is not None:
+                raise TrainingError(
+                    "--initialize-only cannot be combined with resume or a training boundary"
+                )
+            result = trainer.initialize(output_dir=output)
+        else:
+            result = trainer.train(
+                output_dir=output,
+                resume_from=resume_from,
+                stop_after_environment_steps=stop_after_environment_steps,
+            )
     except KovaraError as exc:
         _abort(exc)
     structlog.get_logger().info(
-        "training_complete"
+        "training_initialized"
+        if initialize_only
+        else "training_complete"
         if result.progress.environment_steps == inputs.training.total_environment_steps
         else "training_bounded",
         benchmark=False,
@@ -579,6 +601,7 @@ def evaluate_checkpoint(
             policy_name="checkpoint-shared-actor",
             parameters={
                 "checkpoint_sha256": checkpoint_sha256(checkpoint),
+                "actor_state_sha256": model_state_sha256(loaded.actor_state),
                 "deterministic": True,
                 "environment_steps": loaded.metadata.progress.environment_steps,
                 "training_seed": loaded.metadata.training_config.seed,
@@ -607,7 +630,7 @@ def evaluate_checkpoint(
 
 
 @app.command("compare-policies")
-def compare_policies(
+def compare_policies(  # noqa: PLR0913, PLR0917
     checkpoint: Annotated[
         Path,
         typer.Option("--checkpoint", exists=True, dir_okay=False, readable=True),
@@ -622,13 +645,30 @@ def compare_policies(
     ] = None,
     output: Annotated[Path, typer.Option("--output")] = Path("runs/policy-comparison"),
     device: Annotated[str, typer.Option("--device")] = "cpu",
+    allow_test_partition: Annotated[
+        bool,
+        typer.Option(
+            "--allow-test-partition",
+            help="Explicitly authorize a frozen test evaluation; never use while tuning.",
+        ),
+    ] = False,
 ) -> None:
     """Compare random, frontier, untrained, and checkpoint actors on paired seeds."""
 
     try:
         loaded = load_training_checkpoint(checkpoint)
         evaluation = load_evaluation_config(eval_config)
+        if evaluation.seed_partition == "test" and not allow_test_partition:
+            raise ConfigurationError(
+                "policy comparison refuses test seeds during tuning; "
+                "use --allow-test-partition only after configuration freeze"
+            )
         environment, held_out_environment, _label = _evaluation_environments(evaluation, env_config)
+        environment_identity = configuration_fingerprint(environment)
+        if environment_identity != loaded.metadata.environment_fingerprint:
+            raise ConfigurationError(
+                "checkpoint and policy-comparison environment fingerprints differ"
+            )
         resolved_device = _resolve_requested_device(device)
         configure_deterministic_algorithms(loaded.metadata.training_config.deterministic_torch)
         trained_actor = actor_from_checkpoint(
@@ -642,6 +682,8 @@ def compare_policies(
             device=resolved_device,
         )
         checkpoint_identity = checkpoint_sha256(checkpoint)
+        trained_actor_identity = model_state_sha256(loaded.actor_state)
+        untrained_actor_identity = model_state_sha256(untrained_actor.state_dict())
         factories: dict[str, PolicyFactory] = {
             "random": RandomPolicy,
             "frontier": FrontierPolicy,
@@ -650,6 +692,7 @@ def compare_policies(
                 device=resolved_device,
                 policy_name="untrained-shared-actor",
                 parameters={
+                    "actor_state_sha256": untrained_actor_identity,
                     "deterministic": True,
                     "training_seed": loaded.metadata.training_config.seed,
                 },
@@ -659,6 +702,7 @@ def compare_policies(
                 device=resolved_device,
                 policy_name="checkpoint-shared-actor",
                 parameters={
+                    "actor_state_sha256": trained_actor_identity,
                     "checkpoint_sha256": checkpoint_identity,
                     "deterministic": True,
                     "environment_steps": loaded.metadata.progress.environment_steps,
@@ -675,6 +719,7 @@ def compare_policies(
                 f"cannot create policy comparison directory {output}: {exc}"
             ) from exc
         summaries: dict[str, dict[str, float]] = {}
+        results: dict[str, EvaluationResult] = {}
         for name, policy_factory in factories.items():
             result = _evaluate_and_write(
                 evaluation=evaluation,
@@ -686,14 +731,36 @@ def compare_policies(
             summaries[name] = {
                 metric: summary.mean for metric, summary in result.summary.metrics.items()
             }
+            results[name] = result
+        paired_records = [
+            {
+                "seed": seed,
+                "policies": {
+                    name: results[name].records[index].to_dict() for name in sorted(results)
+                },
+            }
+            for index, seed in enumerate(evaluation.resolved_seeds)
+        ]
         _atomic_cli_json(
             output / "policy-comparison.json",
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "status": "complete",
                 "checkpoint_sha256": checkpoint_identity,
+                "configuration_fingerprints": {
+                    "environment": environment_identity,
+                    "evaluation": configuration_fingerprint(evaluation),
+                    "training": loaded.metadata.training_fingerprint,
+                },
                 "paired_episode_seeds": list(evaluation.resolved_seeds),
                 "policies": summaries,
+                "policy_parameters": {
+                    name: dict(result.policy_parameters) for name, result in results.items()
+                },
+                "inference_performance": {
+                    name: result.inference_performance.to_dict() for name, result in results.items()
+                },
+                "paired_results": paired_records,
             },
         )
     except KovaraError as exc:

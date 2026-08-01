@@ -117,6 +117,27 @@ def checkpoint_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def model_state_sha256(state: Mapping[str, Tensor]) -> str:
+    """Hash named tensors without depending on checkpoint container bytes."""
+
+    digest = hashlib.sha256()
+    for name, tensor in sorted(state.items()):
+        contiguous = tensor.detach().cpu().contiguous()
+        descriptor = json.dumps(
+            {
+                "dtype": str(contiguous.dtype),
+                "name": name,
+                "shape": list(contiguous.shape),
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        digest.update(len(descriptor).to_bytes(8, byteorder="big"))
+        digest.update(descriptor)
+        digest.update(contiguous.view(torch.uint8).numpy().tobytes())
+    return digest.hexdigest()
+
+
 def save_training_checkpoint(  # noqa: PLR0913
     path: Path,
     *,
