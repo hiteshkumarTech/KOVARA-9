@@ -30,12 +30,16 @@ identical configurations are rejected rather than being labelled as generalizati
 
 - **Success:** all targets recovered before truncation.
 - **Episode length:** joint environment ticks.
+- **Targets recovered:** absolute targets recovered and the fraction of configured targets recovered.
 - **Coverage:** the union of reachable cells observed by any agent divided by all reachable cells.
 - **Duplicated exploration:** redundant per-agent unique observed cells divided by the sum of
   per-agent unique observed cells.
 - **Communication cost:** non-silent valid tokens and tokens per active agent-step.
 - **Team efficiency:** recovered targets divided by active agent-steps.
 - **Return:** shared shaped reward, treated as an optimization diagnostic.
+- **Inference performance:** observed wall-clock policy-call count, total seconds, and mean latency
+  at batch size one. Timing is kept outside deterministic episode records because it is a platform
+  measurement, not a behavioral metric.
 - **Seed generalization gap:** reference success rate minus held-out-seed success rate.
 - **Structural generalization gap:** reference-preset success rate minus shifted-preset success rate.
 
@@ -146,3 +150,26 @@ observations only. The critic is not constructed for saved-checkpoint evaluation
 `compare-policies` workflow pairs random, frontier, untrained shared-actor, and checkpoint policies
 on the exact configured episode seeds; each policy receives its own complete artifact directory.
 Smoke training and validation remain pipeline evidence only.
+
+## Day 5 learning-evidence protocol
+
+Day 5 comparisons use only the declared validation partition and identical ordered seeds for every
+policy. The exact untrained actor is saved before collection or optimization; its named-tensor
+SHA-256 fingerprint must equal the recreated initialization used in policy comparison. Comparison
+artifacts record configuration fingerprints, model fingerprints, policy parameters, inference
+timing, aggregate summaries, and aligned per-seed episode rows. During tuning, `compare-policies`
+rejects the test partition unless a post-freeze caller explicitly authorizes it.
+
+Checkpoint selection is fixed before inspecting outcomes. Validation success rate is primary. Ties
+are resolved by higher exploration coverage, higher team efficiency, lower duplicated exploration,
+then shorter episode length. If all policies have zero success in this sparse task, exploration
+coverage is the predeclared secondary learning signal; target recovery, duplication, efficiency,
+communication, and return are checked for catastrophic regression and cannot be substituted after
+results are known. A checkpoint that improves this ordered validation key is atomically published
+as `best.pt`; the scheduled terminal checkpoint remains the `latest_checkpoint`.
+
+Training update records include movement and message action frequencies, communication selection
+rate, and factual warnings for near-zero gradients, KL above the configured PPO clipping
+coefficient, all-sample clipping, complete movement-action collapse, and always-silent or
+always-selected communication. These warnings diagnose behavior; they do not automatically alter
+training parameters.

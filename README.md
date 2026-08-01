@@ -24,6 +24,7 @@ uv run kovara9 evaluate --env-config configs/environments/grid_rescue_easy.yaml 
 uv run kovara9 evaluate --eval-config configs/evaluation/generalization.yaml --agent frontier --output runs/generalization
 uv run kovara9 rollout-smoke --training-config configs/training/mappo_smoke.yaml --steps 8
 uv run kovara9 update-smoke --training-config configs/training/mappo_smoke.yaml
+uv run kovara9 train --training-config configs/training/mappo_day5_short.yaml --output runs/day5/initial --initialize-only
 uv run kovara9 train --training-config configs/training/mappo_smoke.yaml --output runs/mappo-smoke
 uv run kovara9 evaluate-checkpoint --checkpoint runs/mappo-smoke/checkpoints/step-000000000064.pt --env-config configs/environments/grid_rescue_easy.yaml --eval-config configs/evaluation/training_validation_smoke.yaml --output runs/mappo-smoke-evaluation
 ```
@@ -34,9 +35,11 @@ training run, benchmark, checkpoint, or claim that useful behavior has been lear
 `train` writes resolved configuration, provenance, an atomic metrics journal, and scheduled
 checkpoints. `--stop-after-environment-steps` creates a deliberately bounded checkpoint at a
 rollout-aligned step for interruption/resume verification; resume into a new collision-safe output
-directory with `--resume-from`. `evaluate-checkpoint` loads only the decentralized actor for masked
+directory with `--resume-from`. `--initialize-only` persists the exact untrained actor, critic,
+optimizer, collector, and RNG state without performing a rollout or update. `evaluate-checkpoint`
+loads only the decentralized actor for masked
 deterministic inference. `compare-policies` evaluates random, frontier, untrained neural, and saved
-checkpoint policies on the same configured episode seeds.
+checkpoint policies on the same configured episode seeds and writes aligned per-seed results.
 
 Structural-comparison evaluation files declare both reference and held-out environments; supplying
 `--env-config` for such a run is rejected to avoid conflicting experiment definitions.
