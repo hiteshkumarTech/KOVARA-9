@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "git_commit": "b7d8758f226fef85d077227bf99ae0cd7d409d9b",
+  "training_config": "configs/training/mappo_day6_longer.yaml",
+  "candidate_config": "configs/training/mappo_candidate.yaml",
+  "root_seeds": [0, 1, 2],
+  "validation_seeds": [10000,10001,10002,10003,10004,10005,10006,10007,10008,10009,10010,10011,10012,10013,10014,10015,10016,10017,10018,10019],
+  "test_seeds_consumed": 0,
+  "reward": {"target_recovery": 1.0, "completion_bonus": 5.0, "step_cost": -0.01, "accepted_communication_cost": -0.001},
+  "per_seed": [
+    {"root_seed":0,"status":"complete","environment_transitions":16384,"agent_transitions":49152,"optimizer_updates":128,"completed_training_episodes":82,"wall_clock_seconds":337.9709973,"best_success_rate":0.0,"best_targets_recovered":0.65,"best_exploration_coverage":0.5381355932,"exact_untrained_targets_recovered":0.2},
+    {"root_seed":1,"status":"complete","environment_transitions":16384,"agent_transitions":49152,"optimizer_updates":128,"completed_training_episodes":86,"wall_clock_seconds":399.4864899,"best_success_rate":0.0,"best_targets_recovered":0.65,"best_exploration_coverage":0.5330508475,"exact_untrained_targets_recovered":0.1},
+    {"root_seed":2,"status":"complete","environment_transitions":16384,"agent_transitions":49152,"optimizer_updates":128,"completed_training_episodes":82,"wall_clock_seconds":513.1289931,"best_success_rate":0.0,"best_targets_recovered":0.7,"best_exploration_coverage":0.5432203390,"exact_untrained_targets_recovered":0.05}
+  ],
+  "aggregate": {"trained_success_rate":{"mean":0.0,"standard_deviation":0.0},"trained_targets_recovered":{"mean":0.6666666667,"standard_deviation":0.0288675135},"trained_exploration_coverage":{"mean":0.5381355932,"standard_deviation":0.0050850859},"exact_untrained_targets_recovered":{"mean":0.1166666667,"standard_deviation":0.0763762616}},
+  "baselines": {"random":{"success_rate":0.3,"targets_recovered":2.8},"frontier":{"success_rate":0.9,"targets_recovered":3.8}},
+  "paired_differences": {"trained_minus_untrained_success_rate":[0.0,0.0,0.0],"trained_minus_untrained_targets_recovered":[0.45,0.55,0.65],"trained_minus_random_success_rate":[-0.3,-0.3,-0.3],"best_minus_latest_success_rate":[0.0,0.0,0.0]},
+  "entropy_experiment": {"triggered":false,"reason":"required reproducible stagnant-near-limit trigger was not established"},
+  "failure_classification": "exploration-only improvement",
+  "candidate_selection_metric": "aggregate_validation_success_rate_primary_then_predeclared_task_and_behavioral_tiebreakers",
+  "candidate_freeze": "configs/training/mappo_candidate.freeze.json"
+}
