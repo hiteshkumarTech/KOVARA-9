@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "source_configuration": "configs/training/mappo_day6_longer.yaml",
+  "selection_metric": "aggregate_validation_success_rate_primary_then_predeclared_task_and_behavioral_tiebreakers",
+  "selection_reason": "The unchanged longer-exposure control was the only eligible alternative. The entropy experiment was not triggered. All best checkpoints had 0% success but improved target recovery, coverage, and team efficiency over their exact untrained initializations; none beat random on task metrics.",
+  "alternatives_evaluated": [
+    "configs/training/mappo_day6_longer.yaml"
+  ],
+  "configuration_fingerprint": "f085babe1905a441fed9c1b9c64076f875a476ab753105ca17ce61d9338ada1c",
+  "reward_fingerprint": "e3c4990b5a16e12edbb40da1038b5aa146e4d0643fb866fadbe2ba84b2a4c508",
+  "environment_fingerprint": "ce3e4200324577a6ffe22a4c6c60a80915ef0917abdee4e4e30799c39668f47b",
+  "training_seeds": [0, 1, 2],
+  "validation_seeds": [
+    10000,
+    10001,
+    10002,
+    10003,
+    10004,
+    10005,
+    10006,
+    10007,
+    10008,
+    10009,
+    10010,
+    10011,
+    10012,
+    10013,
+    10014,
+    10015,
+    10016,
+    10017,
+    10018,
+    10019
+  ],
+  "git_commit": "b7d8758f226fef85d077227bf99ae0cd7d409d9b"
+}

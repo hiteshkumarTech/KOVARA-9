@@ -26,6 +26,8 @@ uv run kovara9 rollout-smoke --training-config configs/training/mappo_smoke.yaml
 uv run kovara9 update-smoke --training-config configs/training/mappo_smoke.yaml
 uv run kovara9 train --training-config configs/training/mappo_day5_short.yaml --output runs/day5/initial --initialize-only
 uv run kovara9 train --training-config configs/training/mappo_smoke.yaml --output runs/mappo-smoke
+uv run kovara9 day6-run-seed --training-config configs/training/mappo_day6_longer.yaml --root-seed 0 --output runs/day6/seed-0/training
+uv run kovara9 config verify-candidate --candidate configs/training/mappo_candidate.yaml --freeze-record configs/training/mappo_candidate.freeze.json
 uv run kovara9 evaluate-checkpoint --checkpoint runs/mappo-smoke/checkpoints/step-000000000064.pt --env-config configs/environments/grid_rescue_easy.yaml --eval-config configs/evaluation/training_validation_smoke.yaml --output runs/mappo-smoke-evaluation
 ```
 
@@ -40,6 +42,10 @@ optimizer, collector, and RNG state without performing a rollout or update. `eva
 loads only the decentralized actor for masked
 deterministic inference. `compare-policies` evaluates random, frontier, untrained neural, and saved
 checkpoint policies on the same configured episode seeds and writes aligned per-seed results.
+`day6-run-seed` restricts the controlled Day 6 workflow to root seeds 0, 1, and 2 and validation-only
+model-selection inputs; it cannot consume final-test seeds.
+`config verify-candidate` recomputes the frozen candidate, reward, environment, and validation-seed
+identities and fails if any bound input has changed.
 
 Structural-comparison evaluation files declare both reference and held-out environments; supplying
 `--env-config` for such a run is rejected to avoid conflicting experiment definitions.

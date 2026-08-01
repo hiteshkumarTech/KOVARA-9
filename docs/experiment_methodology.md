@@ -173,3 +173,27 @@ rate, and factual warnings for near-zero gradients, KL above the configured PPO 
 coefficient, all-sample clipping, complete movement-action collapse, and always-silent or
 always-selected communication. These warnings diagnose behavior; they do not automatically alter
 training parameters.
+
+## Day 6 controlled multi-seed protocol
+
+Day 6 holds the Day 5 reward definition, optimizer, architecture, rollout structure, environment,
+and validation suite fixed. `mappo_day6_longer.yaml` changes only total environment steps, from
+4,096 to 16,384. With rollout length 64 and two environments, each root seed therefore performs
+128 rollout/update iterations and supplies 49,152 active-agent transitions. Checkpoints and
+validation remain scheduled every 2,048 environment transitions, producing eight aligned
+validation observations per seed. Based on the measured Day 5 duration of 91.17 seconds for 4,096
+steps, the pre-run estimate is approximately 365 seconds per seed, excluding initialization and
+separate comparisons. The controlled root seeds are exactly `0, 1, 2`; every policy comparison
+uses validation seeds `10000-10019`, and Day 6 commands reject the final-test partition.
+
+Training journals additionally record the rollout reward mean, population standard deviation,
+minimum, and maximum, plus selected, accepted, and rejected communication counts. Evaluation
+episode records distinguish accepted messages from rejected attempts. These are factual
+diagnostics only: simulator transitions, rewards, optimization, checkpoint selection, and policy
+inputs are unchanged.
+
+Multi-seed aggregation requires all three declared root-seed identities. A failed or missing seed
+cannot be silently omitted. Paired differences require identical root seed, seed partition, and
+ordered episode seeds. Candidate selection consumes validation metrics only. Its freeze record
+stores configuration, reward, environment, training-seed, and validation-seed identities; later
+mutation is detected by recomputing those fingerprints.
