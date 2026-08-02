@@ -16,6 +16,14 @@
       "success_rate": 0.0
     }
   },
+  "figure_sha256": {
+    "baseline-comparison.svg": "e3a3f503f2c2c7bc1c181572dd8d9e3c2c82b54b85c7e3813db8ff478bf2c210",
+    "exploration-coverage-by-policy.svg": "01a59bad2b968868d36d98d5e768259521c083e8016351150007bc5d0d7e8cc3",
+    "success-rate-by-policy.svg": "7a0adba9ca33cb006620201066d2055d851a0203618a0bc2ff3c6b27cf666037",
+    "targets-recovered-by-policy.svg": "48cb8d494e22d190b256ed3eecec41be5537d96be502382216fb65ca2bc97265",
+    "trained-minus-untrained.svg": "5a149def8840417451f958a483b5982c4e2951eb01e6283daa496844a89c510e",
+    "validation-to-heldout-gaps.svg": "f147afc90d000cb2df87c02cf9952f10e9b4b23fe6a14d9aac522e4ec35f07a2"
+  },
   "figures": [
     "success-rate-by-policy.svg",
     "targets-recovered-by-policy.svg",
@@ -111,7 +119,7 @@
     "trained_seed_2"
   ],
   "provenance": "Values are selected directly from the committed Day 8 JSON; no evaluation is run.",
-  "schema_version": 1,
+  "schema_version": 2,
   "source": "docs/day8-final-heldout-results.json",
   "source_sha256": "4d9de7d35a2cbee5660ad2d21982ad8706f3ba52b85263fd9ab988aea615a2fd"
 }

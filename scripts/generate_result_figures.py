@@ -651,21 +651,25 @@ def generate_figures(report_path: Path, output_directory: Path) -> dict[str, Any
         ),
     )
 
+    figure_filenames = [
+        "success-rate-by-policy.svg",
+        "targets-recovered-by-policy.svg",
+        "exploration-coverage-by-policy.svg",
+        "trained-minus-untrained.svg",
+        "baseline-comparison.svg",
+        "validation-to-heldout-gaps.svg",
+    ]
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source": "docs/day8-final-heldout-results.json",
         "source_sha256": source_hash,
         "provenance": (
             "Values are selected directly from the committed Day 8 JSON; no evaluation is run."
         ),
-        "figures": [
-            "success-rate-by-policy.svg",
-            "targets-recovered-by-policy.svg",
-            "exploration-coverage-by-policy.svg",
-            "trained-minus-untrained.svg",
-            "baseline-comparison.svg",
-            "validation-to-heldout-gaps.svg",
-        ],
+        "figures": figure_filenames,
+        "figure_sha256": {
+            filename: source_sha256(output_directory / filename) for filename in figure_filenames
+        },
         **data,
     }
     _write_text(
