@@ -64,9 +64,9 @@ optimization, saves no checkpoint, and makes no learning claim.
 
 ### 6. Existing final-result figures
 
-The figure generator reads only `docs/day8-final-heldout-results.json`, then deterministically rewrites
-six lightweight SVGs and a provenance manifest. It does not open raw episode artifacts or invoke an
-evaluator.
+The figure generator reads only `docs/day8-final-heldout-results.json`, then deterministically
+rewrites six lightweight SVGs and a provenance manifest containing their SHA-256 hashes. It does not
+open raw episode artifacts or invoke an evaluator.
 
 ### 7. Focused presentation-integrity tests
 

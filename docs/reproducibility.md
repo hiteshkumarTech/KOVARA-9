@@ -162,6 +162,9 @@ Relevant immutable records:
 - `configs/evaluation/final_test_consumed.json`
 - `docs/assets/results/manifest.json`
 
+The figure manifest records both the Day 8 source hash and each generated SVG's SHA-256, allowing
+byte-level reproduction checks without evaluating a policy.
+
 Ordinary evaluation and tuning commands reject the consumed test partition. A future replication
 requires a separately approved untouched partition and must be labeled replication, not tuning.
 

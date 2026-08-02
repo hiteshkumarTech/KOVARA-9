@@ -12,5 +12,8 @@
 
 Each phase requires measured evidence before the next adds complexity.
 
-Day 10 is release audit work only. New learning research begins after v0.1 and must not reuse the
-consumed final-test partition.
+The Day 10 repository audit and release preparation are complete when
+[`day10-final-audit.md`](day10-final-audit.md) is marked passed. Owner-managed PR integration,
+repository rename, tag, and release steps remain in the
+[`release-checklist.md`](release-checklist.md). New learning research begins after v0.1 and must not
+reuse the consumed final-test partition.
