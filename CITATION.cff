@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata in this file."
+type: software
+title: "KOVARA-9: a reproducible multi-agent reinforcement-learning research platform"
+version: 0.1.0
+authors:
+  - name: "KOVARA-9 Contributors"
+license: Apache-2.0
+abstract: >-
+  A reproducible multi-agent reinforcement-learning research platform for cooperative
+  exploration and procedural-environment generalization. The v0.1 frozen policies
+  demonstrated partial exploration transfer but not full task completion.
+keywords:
+  - multi-agent reinforcement learning
+  - reproducible research
+  - PettingZoo
+  - PyTorch
+  - MAPPO
+  - procedural generation
