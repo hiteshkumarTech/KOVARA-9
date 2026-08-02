@@ -1,0 +1,18 @@
+flowchart TB
+    subgraph Execution[Decentralized execution]
+        LOCAL[Local grid, local teammate tokens, personal budget, action masks]
+        ACTOR[One shared actor used independently by every agent]
+        POLICY[Masked move and message logits]
+        LOCAL --> ACTOR --> POLICY
+    end
+
+    subgraph Training[Centralized training only]
+        GLOBAL[Full map, all positions, targets, budgets, step]
+        CRITIC[Centralized critic]
+        VALUE[Shared team-value estimate]
+        GLOBAL --> CRITIC --> VALUE
+    end
+
+    POLICY --> ROLLOUT[Rollout and PPO loss]
+    VALUE --> ROLLOUT
+    GLOBAL -. never enters actor input .-> ACTOR

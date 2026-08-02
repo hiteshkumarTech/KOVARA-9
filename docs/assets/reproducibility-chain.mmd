@@ -1,0 +1,10 @@
+flowchart LR
+    CONFIG[Validated YAML] --> FP[Canonical configuration fingerprint]
+    FP --> SEEDS[Semantic deterministic seed streams]
+    SEEDS --> RUN[Typed rollout and update records]
+    RUN --> CKPT[Checkpoint plus checksum]
+    CKPT --> FREEZE[Frozen candidate metadata]
+    FREEZE --> PREREG[Byte-fingerprinted preregistration]
+    PREREG --> LOCK[Atomic test-consumption lock]
+    LOCK --> REPORT[Markdown and machine-readable final report]
+    REPORT --> FIGURES[Deterministic JSON-derived figures]

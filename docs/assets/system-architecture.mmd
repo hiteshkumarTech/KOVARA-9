@@ -1,0 +1,20 @@
+flowchart LR
+    CFG[Validated configuration] --> GEN[Procedural generator]
+    GEN --> ENV[PettingZoo parallel environment]
+    ENV --> OBS[Per-agent local observations]
+    OBS --> ACTOR[Shared decentralized actor]
+    ACTOR --> ACTIONS[Masked move and message actions]
+    ACTIONS --> ENV
+
+    ENV --> STATE[Centralized state]
+    STATE --> CRITIC[Centralized critic]
+    CRITIC --> VALUES[Team-value estimates]
+
+    OBS --> ROLLOUT[Typed synchronous rollout]
+    ACTIONS --> ROLLOUT
+    VALUES --> ROLLOUT
+    ROLLOUT --> GAE[GAE with boundary-aware bootstrap]
+    GAE --> PPO[Clipped PPO update]
+    PPO --> ACTOR
+    PPO --> CRITIC
+    PPO --> CHECKPOINT[Atomic deterministic checkpoint]
