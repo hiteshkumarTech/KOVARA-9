@@ -197,3 +197,29 @@ cannot be silently omitted. Paired differences require identical root seed, seed
 ordered episode seeds. Candidate selection consumes validation metrics only. Its freeze record
 stores configuration, reward, environment, training-seed, and validation-seed identities; later
 mutation is detected by recomputing those fingerprints.
+
+## Day 8 one-time final evaluation semantics
+
+The final held-out workflow is governed by the byte-fingerprinted JSON preregistration. It verifies
+the frozen candidate, ordered policy set, exact initialization and best-checkpoint identities,
+declared test seeds, and both structural environment identities before it can claim the test
+partition. The claim is an exclusive `final_test_consumed.json` record created immediately before
+the first episode. Once that record exists, generic baseline, checkpoint, and policy-comparison
+commands reject the test partition. A post-claim failure remains recorded and does not silently
+authorize a rerun.
+
+Random and frontier are evaluated once per environment. Each of the three saved zero-step actors
+and three validation-selected Day 6 actors is evaluated with the same ordered test seeds on the
+reference and held-out structures. Neural action selection is deterministic masked argmax and uses
+only local observations. Checkpoint files plus actor, critic, and optimizer states are fingerprinted
+before and after; neural evaluation must also preserve Torch process RNG state. No optimizer is
+constructed or stepped.
+
+Episode records additionally expose completion progress, distinct targets observed,
+discovery-to-recovery conversion, blocked non-STAY movements, and agent-caused collision attempts.
+These are evaluator diagnostics derived from simulator snapshots and events; they do not enter
+policy observations or simulator transitions. A collision is a blocked attempt involving a
+contested destination or another agent's occupied position, covering contention, swaps, movement
+cycles, and occupied-agent dependency cascades while excluding wall, boundary, and obstacle blocks.
+Raw return remains a within-environment diagnostic and is not used as the primary cross-environment
+metric.

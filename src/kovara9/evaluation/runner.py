@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from time import perf_counter_ns
@@ -11,7 +12,7 @@ from typing import Any
 from kovara9.agents.policy import Policy, PolicyTransitionInfo
 from kovara9.config.models import EnvConfig, EvaluationConfig
 from kovara9.core.seeding import derive_seed
-from kovara9.core.types import AgentId, Position, WorldSnapshot
+from kovara9.core.types import AgentId, Move, Position, WorldSnapshot
 from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.evaluation.metrics import (
     aggregate_records,
@@ -22,6 +23,44 @@ from kovara9.evaluation.metrics import (
 from kovara9.evaluation.records import EpisodeRecord, EvaluationSummary
 
 PolicyFactory = Callable[[], Policy]
+
+
+def collision_blocked_agents(
+    snapshot: WorldSnapshot,
+    actions: Mapping[AgentId, Mapping[str, int]],
+    blocked_agents: set[AgentId],
+) -> set[AgentId]:
+    """Identify blocked movement attempts caused by another agent.
+
+    This evaluator-only diagnostic uses the pre-transition snapshot. It does not affect
+    simulator movement resolution or any policy observation.
+    """
+
+    desired: dict[AgentId, Position] = {}
+    for agent, action in actions.items():
+        move = Move(action["move"])
+        if move is Move.STAY:
+            continue
+        row_delta, col_delta = move.delta
+        destination = snapshot.agent_positions[agent].moved(row_delta, col_delta)
+        if (
+            0 <= destination.row < snapshot.height
+            and 0 <= destination.col < snapshot.width
+            and not snapshot.obstacles[destination.row, destination.col]
+        ):
+            desired[agent] = destination
+
+    destination_counts = Counter(desired.values())
+    occupied_by_other = {
+        agent: destination
+        in (set(snapshot.agent_positions.values()) - {snapshot.agent_positions[agent]})
+        for agent, destination in desired.items()
+    }
+    return {
+        agent
+        for agent in blocked_agents
+        if agent in desired and (destination_counts[desired[agent]] > 1 or occupied_by_other[agent])
+    }
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,19 +146,23 @@ def run_episode(
         )
 
     observed = {agent: set[Position]() for agent in env.possible_agents}
+    observed_targets: set[Position] = set()
     for agent in env.agents:
-        observed[agent].update(
-            _visible_reachable_cells(env.snapshot, agent, env_config.observation_radius)
-        )
+        visible = _visible_reachable_cells(env.snapshot, agent, env_config.observation_radius)
+        observed[agent].update(visible)
+        observed_targets.update(visible.intersection(env.snapshot.targets))
     agent_steps = 0
     messages = 0
     rejected_messages = 0
+    collisions = 0
+    blocked_movements = 0
     shared_return = 0.0
     success = False
     termination_reason = "time_limit"
 
     while env.agents:
         acting_agents = tuple(env.agents)
+        pre_step_snapshot = env.snapshot
         actions: dict[str, dict[str, int]] = {}
         for agent in acting_agents:
             started = perf_counter_ns()
@@ -127,6 +170,12 @@ def run_episode(
             if inference_timer is not None:
                 inference_timer.observe(perf_counter_ns() - started)
         observations, rewards, terminations, truncations, infos = env.step(actions)
+        blocked_agents = {agent for agent in acting_agents if bool(infos[agent]["blocked"])}
+        blocked_movements += sum(
+            agent in blocked_agents and Move(actions[agent]["move"]) is not Move.STAY
+            for agent in acting_agents
+        )
+        collisions += len(collision_blocked_agents(pre_step_snapshot, actions, blocked_agents))
         agent_steps += len(acting_agents)
         messages += env.last_events.messages_sent
         rejected_messages += sum(
@@ -147,9 +196,9 @@ def run_episode(
                 info=policy_info,
             )
         for agent in acting_agents:
-            observed[agent].update(
-                _visible_reachable_cells(env.snapshot, agent, env_config.observation_radius)
-            )
+            visible = _visible_reachable_cells(env.snapshot, agent, env_config.observation_radius)
+            observed[agent].update(visible)
+            observed_targets.update(visible.intersection(env.snapshot.targets))
         success = any(terminations.values())
         if success:
             termination_reason = "success"
@@ -170,6 +219,19 @@ def run_episode(
         team_efficiency=team_efficiency(len(final_snapshot.recovered_targets), agent_steps),
         shared_return=shared_return,
         termination_reason=termination_reason,
+        completion_progress=(
+            len(final_snapshot.recovered_targets) / len(final_snapshot.targets)
+            if final_snapshot.targets
+            else 0.0
+        ),
+        targets_observed=len(observed_targets),
+        discovery_to_recovery_conversion=(
+            len(final_snapshot.recovered_targets) / len(observed_targets)
+            if observed_targets
+            else 0.0
+        ),
+        collisions=collisions,
+        blocked_movements=blocked_movements,
     )
     env.close()
     return record
