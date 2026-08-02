@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "classification": "exploration_transfer_without_task_completion",
+  "classification_label": "Exploration transfer without task completion",
+  "research_questions": [
+    "Does each trained shared policy outperform its exact untrained initialization on unseen procedural seeds and environments?",
+    "Does validation improvement transfer to the held-out distribution?",
+    "How large is the validation-to-test generalization gap?",
+    "How do trained policies compare with random and frontier baselines?",
+    "Which positive and negative conclusions are supported by the evidence?"
+  ],
+  "fingerprints": {
+    "candidate": "f085babe1905a441fed9c1b9c64076f875a476ab753105ca17ce61d9338ada1c",
+    "reward": "e3c4990b5a16e12edbb40da1038b5aa146e4d0643fb866fadbe2ba84b2a4c508",
+    "reference_environment": "ce3e4200324577a6ffe22a4c6c60a80915ef0917abdee4e4e30799c39668f47b",
+    "structural_environment": "a95dfaf420bf2a45bfc761e7d857d3b4093ee8389af1d4bd0de3f0b81a6e0598",
+    "evaluation": "e5cbbe68f63cac8f7f60f3ea5d5145892bc2cde5aaad3b504132c1132c41f5ef",
+    "preregistration": "cde300dcf8cc33f559bf5accaf99f541eafdfc57ed7559a421816a1fb3601b9a",
+    "consumption_record": "059507747e91ef198cc34a3377276d657248375e839ee64c4dfb9e538ec8532f",
+    "analysis": "a606e7e97ca8c85da45786885c55f327c85374f7aa23c3f0f7eb4d7d2d7f4e22"
+  },
+  "git": {
+    "branch": "v0.1-ten-day-sprint",
+    "original_and_remote_head_before_entry_repair": "3d12c2f92735ff8722e7959f93854eb57480f9a7",
+    "clean_evaluation_snapshot_commit": "6b59739d63c6ef78526bd4a8a00601a829d5830e",
+    "clean_at_test_start": true,
+    "push_status": "not_pushed_credentials_unavailable"
+  },
+  "partitions": {
+    "training_seeds": [0, 1, 2],
+    "validation": {"start": 10000, "stop_exclusive": 10020, "count": 20},
+    "final_test": {"start": 20000, "stop_exclusive": 20100, "count": 100, "order": "ascending_all_integers"},
+    "configured": {
+      "train": {"start": 0, "stop_exclusive": 10000},
+      "validation": {"start": 10000, "stop_exclusive": 11000},
+      "test": {"start": 20000, "stop_exclusive": 21000}
+    },
+    "pairwise_disjoint": true
+  },
+  "environments": {
+    "reference": {"name": "grid_rescue_medium", "width": 12, "height": 12, "agents": 3, "targets": 4, "max_steps": 200, "communication_budget_per_agent": 8, "episode_count_per_policy": 100},
+    "structural": {"name": "grid_rescue_hard", "width": 16, "height": 16, "agents": 4, "targets": 6, "max_steps": 300, "communication_budget_per_agent": 12, "episode_count_per_policy": 100}
+  },
+  "evaluation_protocol": {
+    "inference": "deterministic_masked_argmax",
+    "device": "cpu",
+    "communication_ablation": null,
+    "latest_checkpoints": false,
+    "rejected_day7_policies": false,
+    "all_policies_received_identical_seeds": true,
+    "raw_reward_used_for_cross_environment_conclusion": false
+  },
+  "checkpoints": {
+    "untrained_seed_0": {"step": 0, "file_sha256": "3be3be7fa8c42ebe230fefe1419c7e3583c0c968f9548cbcd3201e39bc539470", "actor_sha256": "7fed8569fba32cfd9f06425478bf78288dc0c982dc4a2aa7c62ed10c3b1d9931"},
+    "untrained_seed_1": {"step": 0, "file_sha256": "9a271db3f8e76ffa646d38f412c9494ea84b2020d484cdb038ce31d744f4e7f2", "actor_sha256": "2c73ad5188056be79d59cdc0777dc41d9ad3e4a14e5460e86b268f59df805b98"},
+    "untrained_seed_2": {"step": 0, "file_sha256": "0b541c4b75d6f3f361fdfd08666a4f977720171d3ce372f5f1872e99034621f3", "actor_sha256": "b87f0c15a1d76a2734f89c774c3bf8e5b790a862b9c21e7f8ace76caa4ce15d8"},
+    "trained_seed_0": {"step": 16384, "file_sha256": "406d917715352589176c1f85a3a36002a84b11ca2557c13b9bce2a49612a38fd", "actor_sha256": "41e1a5e38bbf10f158d274c2250856a966d18bb2e08133317200571b5601d817"},
+    "trained_seed_1": {"step": 6144, "file_sha256": "2cb9c83774ea7837abbc347b8ddbed4e40b45d10be48297f1806357acc74e19b", "actor_sha256": "573a9f0f321b3a16edebba4a728b4958d527b0d03a79ac9df23ca9e92dae1332"},
+    "trained_seed_2": {"step": 14336, "file_sha256": "95d3efcde185e42d09d052f46daddefcdb3cc2b777e39c2f4cda69c5bc4b7eb1", "actor_sha256": "7cef7263311c0d0090643e162c4b414e209a348c16e7835a0727d06793dbcd92"}
+  },
+  "policy_results": {
+    "random": {
+      "kind": "seeded_random_baseline",
+      "reference": {"success_rate": 0.18, "targets_recovered": 2.60, "completion_progress": 0.65, "team_efficiency": 0.00557701114291305, "episode_length": 185.84, "exploration_coverage": 0.9356779661016948},
+      "structural": {"success_rate": 0.10, "targets_recovered": 3.76, "completion_progress": 0.6266666666666666, "team_efficiency": 0.003475595974499346, "episode_length": 290.46, "exploration_coverage": 0.8728645833333334},
+      "pooled": {"success_rate": 0.14, "targets_recovered": 3.18, "completion_progress": 0.6383333333333333, "team_efficiency": 0.004526303558706198, "episode_length": 238.15, "successful_episode_length": {"mean": 151.07142857142858, "count": 28, "confidence_interval_95": [127.845, 175.575]}, "exploration_coverage": 0.9042712747175141}
+    },
+    "frontier": {
+      "kind": "handcrafted_frontier_heuristic",
+      "reference": {"success_rate": 0.92, "targets_recovered": 3.87, "completion_progress": 0.9675, "team_efficiency": 0.06910603822355087, "episode_length": 49.19, "exploration_coverage": 0.8968644067796611},
+      "structural": {"success_rate": 0.79, "targets_recovered": 5.57, "completion_progress": 0.9283333333333335, "team_efficiency": 0.0308524511448895, "episode_length": 115.64, "exploration_coverage": 0.9102604166666666},
+      "pooled": {"success_rate": 0.855, "targets_recovered": 4.72, "completion_progress": 0.9479166666666667, "team_efficiency": 0.049979244684220185, "episode_length": 82.415, "successful_episode_length": {"mean": 50.19298245614035, "count": 171, "confidence_interval_95": [44.117, 56.810]}, "exploration_coverage": 0.9035624117231639}
+    },
+    "untrained_seed_0": {"reference": {"success_rate": 0.0, "targets_recovered": 0.05, "completion_progress": 0.0125, "team_efficiency": 0.0000833333333333333, "episode_length": 200.0, "exploration_coverage": 0.43796610169491523}, "structural": {"success_rate": 0.0, "targets_recovered": 0.02, "completion_progress": 0.003333333333333333, "team_efficiency": 0.0000166666666666667, "episode_length": 300.0, "exploration_coverage": 0.32244791666666667}, "pooled": {"success_rate": 0.0, "targets_recovered": 0.035, "completion_progress": 0.007916666666666666, "team_efficiency": 0.00005, "episode_length": 250.0, "successful_episode_length": null, "exploration_coverage": 0.380207009180791}},
+    "untrained_seed_1": {"reference": {"success_rate": 0.0, "targets_recovered": 0.19, "completion_progress": 0.0475, "team_efficiency": 0.00031666666666666665, "episode_length": 200.0, "exploration_coverage": 0.495}, "structural": {"success_rate": 0.0, "targets_recovered": 0.14, "completion_progress": 0.02333333333333333, "team_efficiency": 0.00011666666666666667, "episode_length": 300.0, "exploration_coverage": 0.3386979166666666}, "pooled": {"success_rate": 0.0, "targets_recovered": 0.165, "completion_progress": 0.035416666666666666, "team_efficiency": 0.00021666666666666663, "episode_length": 250.0, "successful_episode_length": null, "exploration_coverage": 0.4168489583333333}},
+    "untrained_seed_2": {"reference": {"success_rate": 0.0, "targets_recovered": 0.14, "completion_progress": 0.035, "team_efficiency": 0.00023333333333333333, "episode_length": 200.0, "exploration_coverage": 0.4431355932203389}, "structural": {"success_rate": 0.0, "targets_recovered": 0.23, "completion_progress": 0.03833333333333333, "team_efficiency": 0.0001916666666666667, "episode_length": 300.0, "exploration_coverage": 0.35723958333333333}, "pooled": {"success_rate": 0.0, "targets_recovered": 0.185, "completion_progress": 0.03666666666666667, "team_efficiency": 0.0002125, "episode_length": 250.0, "successful_episode_length": null, "exploration_coverage": 0.40018758827683615}},
+    "trained_seed_0": {"reference": {"success_rate": 0.0, "targets_recovered": 0.76, "completion_progress": 0.19, "team_efficiency": 0.0012666666666666668, "episode_length": 200.0, "exploration_coverage": 0.5843220338983051}, "structural": {"success_rate": 0.0, "targets_recovered": 0.82, "completion_progress": 0.13666666666666663, "team_efficiency": 0.0006833333333333334, "episode_length": 300.0, "exploration_coverage": 0.4515624999999999}, "pooled": {"success_rate": 0.0, "targets_recovered": 0.79, "completion_progress": 0.16333333333333333, "team_efficiency": 0.0009750000000000001, "episode_length": 250.0, "successful_episode_length": null, "exploration_coverage": 0.5179422669491526}},
+    "trained_seed_1": {"reference": {"success_rate": 0.0, "targets_recovered": 0.54, "completion_progress": 0.135, "team_efficiency": 0.0009, "episode_length": 200.0, "exploration_coverage": 0.5757627118644068}, "structural": {"success_rate": 0.0, "targets_recovered": 0.53, "completion_progress": 0.08833333333333333, "team_efficiency": 0.0004416666666666666, "episode_length": 300.0, "exploration_coverage": 0.4289583333333333}, "pooled": {"success_rate": 0.0, "targets_recovered": 0.535, "completion_progress": 0.11166666666666666, "team_efficiency": 0.0006708333333333333, "episode_length": 250.0, "successful_episode_length": null, "exploration_coverage": 0.50236052259887}},
+    "trained_seed_2": {"reference": {"success_rate": 0.0, "targets_recovered": 0.48, "completion_progress": 0.12, "team_efficiency": 0.0008, "episode_length": 200.0, "exploration_coverage": 0.5352542372881356}, "structural": {"success_rate": 0.0, "targets_recovered": 0.55, "completion_progress": 0.09166666666666666, "team_efficiency": 0.0004583333333333334, "episode_length": 300.0, "exploration_coverage": 0.43390625}, "pooled": {"success_rate": 0.0, "targets_recovered": 0.515, "completion_progress": 0.10583333333333332, "team_efficiency": 0.0006291666666666667, "episode_length": 250.0, "successful_episode_length": null, "exploration_coverage": 0.4845802436440678}}
+  },
+  "training_seed_aggregates": {
+    "trained": {
+      "success_rate": {"mean": 0.0, "sample_standard_deviation": 0.0, "minimum": 0.0, "maximum": 0.0, "confidence_interval_95": [0.0, 0.0]},
+      "targets_recovered": {"mean": 0.6133333333333334, "sample_standard_deviation": 0.15332427509475902, "minimum": 0.515, "maximum": 0.79, "confidence_interval_95": [0.515, 0.79]},
+      "completion_progress": {"mean": 0.12694444444444444, "sample_standard_deviation": 0.03164838653660516, "minimum": 0.10583333333333332, "maximum": 0.16333333333333333, "confidence_interval_95": [0.10583333333333332, 0.16333333333333333]},
+      "team_efficiency": {"mean": 0.0007583333333333334, "sample_standard_deviation": 0.0001887918459868199, "minimum": 0.0006291666666666667, "maximum": 0.0009750000000000001, "confidence_interval_95": [0.0006291666666666667, 0.0009750000000000001]},
+      "episode_length": {"mean": 250.0, "sample_standard_deviation": 0.0, "minimum": 250.0, "maximum": 250.0, "confidence_interval_95": [250.0, 250.0]},
+      "exploration_coverage": {"mean": 0.5016276777306968, "sample_standard_deviation": 0.01669308078075645, "minimum": 0.4845802436440678, "maximum": 0.5179422669491526, "confidence_interval_95": [0.4845802436440678, 0.5179422669491526]}
+    },
+    "untrained": {
+      "success_rate_mean": 0.0,
+      "targets_recovered_mean": 0.12833333333333333,
+      "completion_progress_mean": 0.02666666666666667,
+      "team_efficiency_mean": 0.0001597222222222222,
+      "episode_length_mean": 250.0,
+      "exploration_coverage_mean": 0.3990811852636535
+    }
+  },
+  "paired_trained_minus_untrained": {
+    "seed_0": {"success_rate": 0.0, "targets_recovered": 0.755, "completion_progress": 0.15541666666666665, "team_efficiency": 0.000925, "episode_length": 0.0, "exploration_coverage": 0.1377352577683616, "target_episode_counts": {"positive": 109, "tied": 88, "negative": 3}, "coverage_episode_counts": {"positive": 186, "tied": 1, "negative": 13}},
+    "seed_1": {"success_rate": 0.0, "targets_recovered": 0.37, "completion_progress": 0.07625, "team_efficiency": 0.0004541666666666667, "episode_length": 0.0, "exploration_coverage": 0.0855115642655367, "target_episode_counts": {"positive": 65, "tied": 127, "negative": 8}, "coverage_episode_counts": {"positive": 154, "tied": 6, "negative": 40}},
+    "seed_2": {"success_rate": 0.0, "targets_recovered": 0.33, "completion_progress": 0.06916666666666665, "team_efficiency": 0.00041666666666666664, "episode_length": 0.0, "exploration_coverage": 0.08439265536723164, "target_episode_counts": {"positive": 69, "tied": 110, "negative": 21}, "coverage_episode_counts": {"positive": 156, "tied": 4, "negative": 40}},
+    "mean": {"success_rate": 0.0, "targets_recovered": 0.485, "completion_progress": 0.10027777777777777, "team_efficiency": 0.0005986111111111111, "episode_length": 0.0, "exploration_coverage": 0.10254649246704329}
+  },
+  "trained_minus_baselines_mean": {
+    "random": {"success_rate": -0.14, "targets_recovered": -2.5666666666666664, "completion_progress": -0.5113888888888889, "team_efficiency": -0.0037679702253728645, "episode_length": 11.85, "exploration_coverage": -0.4026435969868173},
+    "frontier": {"success_rate": -0.855, "targets_recovered": -4.1066666666666665, "completion_progress": -0.8209722222222222, "team_efficiency": -0.04922091135088685, "episode_length": 167.585, "exploration_coverage": -0.4019347339924671}
+  },
+  "generalization_gap": {
+    "definition": "validation_metric - pooled_held_out_metric",
+    "positive_means_degradation": true,
+    "successful_episode_length": "not_applicable_because_trained_success_is_zero",
+    "seed_0": {"success_rate": 0.0, "targets_recovered": -0.14, "completion_progress": -0.0008333333333333248, "team_efficiency": 0.00010833333333333322, "exploration_coverage": 0.020193326271186418},
+    "seed_1": {"success_rate": 0.0, "targets_recovered": 0.11499999999999999, "completion_progress": 0.05083333333333334, "team_efficiency": 0.0004125000000000001, "exploration_coverage": 0.030690324858757},
+    "seed_2": {"success_rate": 0.0, "targets_recovered": 0.18499999999999994, "completion_progress": 0.06916666666666667, "team_efficiency": 0.0005375000000000001, "exploration_coverage": 0.05864009533898307},
+    "aggregate_validation_mean_minus_test_mean": {"success_rate": 0.0, "targets_recovered": 0.05333333333333323, "completion_progress": 0.039722222222222214, "team_efficiency": 0.00035277777777777774, "exploration_coverage": 0.03650791548964217}
+  },
+  "pooled_diagnostics": {
+    "random": {"duplicated_exploration": 0.475009583763849, "targets_observed": 4.575, "discovery_to_recovery_conversion": 0.6933333333333334, "collisions": 8.35, "blocked_movements": 204.73, "communication_messages": 35.715, "communication_rejections": 0.0, "messages_per_agent_step": 0.04350239777059764, "reference_inference_latency_ms": 0.00885028698522026},
+    "frontier": {"duplicated_exploration": 0.43445349309884504, "targets_observed": 4.88, "discovery_to_recovery_conversion": 0.9618333333333334, "collisions": 133.295, "blocked_movements": 133.295, "communication_messages": 17.52, "communication_rejections": 0.0, "messages_per_agent_step": 0.15364024052384084, "reference_inference_latency_ms": 0.07760995459781798},
+    "untrained_seed_0": {"duplicated_exploration": 0.11674784947160749, "targets_observed": 1.8, "discovery_to_recovery_conversion": 0.015, "collisions": 3.84, "blocked_movements": 237.02, "communication_messages": 32.48, "communication_rejections": 0.0, "messages_per_agent_step": 0.03662083333333333, "reference_inference_latency_ms": 2.283494493333333},
+    "untrained_seed_1": {"duplicated_exploration": 0.13102644082844047, "targets_observed": 1.955, "discovery_to_recovery_conversion": 0.06966666666666667, "collisions": 12.88, "blocked_movements": 569.385, "communication_messages": 36.0, "communication_rejections": 0.0, "messages_per_agent_step": 0.04, "reference_inference_latency_ms": 3.50839305},
+    "untrained_seed_2": {"duplicated_exploration": 0.12792915512378522, "targets_observed": 1.93, "discovery_to_recovery_conversion": 0.08158333333333333, "collisions": 15.685, "blocked_movements": 288.26, "communication_messages": 11.635, "communication_rejections": 0.0, "messages_per_agent_step": 0.0120625, "reference_inference_latency_ms": 3.916194225},
+    "trained_seed_0": {"duplicated_exploration": 0.1915370215566981, "targets_observed": 2.435, "discovery_to_recovery_conversion": 0.29325, "collisions": 52.55, "blocked_movements": 622.085, "communication_messages": 36.0, "communication_rejections": 0.0, "messages_per_agent_step": 0.04, "reference_inference_latency_ms": 3.015744075},
+    "trained_seed_1": {"duplicated_exploration": 0.19960136272264407, "targets_observed": 2.43, "discovery_to_recovery_conversion": 0.19975, "collisions": 36.235, "blocked_movements": 661.26, "communication_messages": 35.98, "communication_rejections": 0.0, "messages_per_agent_step": 0.039979166666666665, "reference_inference_latency_ms": 3.0630564766666666},
+    "trained_seed_2": {"duplicated_exploration": 0.19236681923667425, "targets_observed": 2.35, "discovery_to_recovery_conversion": 0.18458333333333332, "collisions": 50.83, "blocked_movements": 869.885, "communication_messages": 36.0, "communication_rejections": 0.0, "messages_per_agent_step": 0.04, "reference_inference_latency_ms": 3.79377397},
+    "structural_inference_latency": "not_serialized_by_v0.1_artifact_writer"
+  },
+  "integrity": {
+    "completed_policy_count": 8,
+    "episode_count": 1600,
+    "all_values_finite": true,
+    "actor_parameters_unchanged": true,
+    "critic_parameters_unchanged": true,
+    "optimizer_state_unchanged": true,
+    "checkpoint_files_unchanged": true,
+    "torch_rng_state_unchanged": true,
+    "failed_or_zero_success_seeds_dropped": false,
+    "final_test_consumed_once": true,
+    "consumed_at_utc": "2026-08-02T06:10:26.238680+00:00",
+    "completed_at_utc": "2026-08-02T07:28:59.052245+00:00",
+    "runtime_seconds": 4712.813565,
+    "technical_continuation": {"reason": "The host terminated the original command at 3600 seconds after seven policies completed; trained_seed_2 had no usable artifact and was the only policy executed by the continuation.", "completed_policies_not_rerun": true, "script_sha256": "f20ceb7c07b5820acbc6f8190d1276e87c646bb996bbc44db83a8e729f469b2f"}
+  },
+  "software": {"platform": "Windows-11-10.0.26200-SP0", "processor": "Intel64 Family 6 Model 142 Stepping 10, GenuineIntel", "python": "3.12.13", "torch": "2.13.0+cpu", "numpy": "2.5.1", "gymnasium": "1.3.0", "pettingzoo": "1.26.1", "kovara9": "0.1.0", "cuda_available": false},
+  "quality_gates": {
+    "ruff_format_check": "passed",
+    "ruff_check": "passed",
+    "mypy": "passed",
+    "pytest": {"status": "passed", "passed": 253, "skipped": 1, "coverage_percent": 90.19, "runtime_seconds": 78.539, "requested_external_basetemp": "sandbox_denied_before_execution", "fallback": "fresh writable OS temporary directory"},
+    "build": {"status": "passed", "runtime_seconds": 21.684, "requested_external_directory": "sandbox_denied_before_execution", "fallback": "fresh OS temporary directory outside repository", "wheel_sha256": "2ba7ca3cd1e3db5e309e76463faf97399adc52eea1e7575e323fc5a272af10bc", "sdist_sha256": "f1cceedb501a6724e212211dce0f52eed535e435863088509b8ba099cb0265c6"},
+    "cli_smoke": {"status": "passed", "candidate_verification_exit": 0, "consumed_guard_exit": 2, "guard_created_output": false, "guard_executed_episode": false}
+  },
+  "positive_findings": [
+    "Every trained seed improved partial recovery, completion, efficiency, and coverage over its exact initialization.",
+    "Partial behavior transferred to both declared held-out environments.",
+    "All integrity and alignment checks passed.",
+    "The handcrafted frontier policy demonstrates operational solvability of the held-out tasks."
+  ],
+  "negative_findings": [
+    "All trained policies had zero success in all 600 trained-policy episodes.",
+    "Random directly outperformed the trained policies on central task metrics.",
+    "Frontier strongly outperformed the trained policies.",
+    "Average validation partial-metric performance degraded on held-out data.",
+    "No task learning, broad generalization, statistical significance, production readiness, or successful rescue intelligence is supported."
+  ],
+  "threats_to_validity": [
+    "Only three training seeds were evaluated.",
+    "Only one final seed partition and two structures were evaluated.",
+    "Baseline stochastic variation beyond explicit episode seeds was not independently replicated.",
+    "Deterministic masked argmax covers one deployment rule.",
+    "Reference and structural tasks differ in target count and horizon.",
+    "Structural inference timing was not serialized.",
+    "One documented technical continuation was required after the shell time limit."
+  ],
+  "no_post_test_tuning": true,
+  "day9_started": false,
+  "day9_scope": "Recruiter-facing documentation, reproducible demonstrations, visual evidence, repository cleanup, and honest presentation of successes and failures only; do not change the frozen model or rerun the consumed final partition."
+}
