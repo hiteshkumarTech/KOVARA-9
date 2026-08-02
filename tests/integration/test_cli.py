@@ -32,6 +32,57 @@ def test_cli_help_and_validation() -> None:
 
 
 @pytest.mark.integration
+def test_cli_final_evaluation_dispatches_only_preregistered_cpu_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    candidate = tmp_path / "candidate.yaml"
+    freeze = tmp_path / "freeze.json"
+    evaluation = tmp_path / "evaluation.yaml"
+    preregistration = tmp_path / "preregistration.json"
+    for path in (candidate, freeze, evaluation, preregistration):
+        path.write_text("placeholder", encoding="utf-8")
+    captured: dict[str, object] = {}
+
+    def fake_final_evaluation(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "completed_policies": ["random", "frontier"],
+            "runtime_seconds": 1.0,
+        }
+
+    monkeypatch.setattr("kovara9.cli.run_final_evaluation", fake_final_evaluation)
+    command = [
+        "final-evaluate",
+        "--candidate",
+        str(candidate),
+        "--freeze-record",
+        str(freeze),
+        "--eval-config",
+        str(evaluation),
+        "--preregistration",
+        str(preregistration),
+        "--preregistration-sha256",
+        "a" * 64,
+        "--artifact-root",
+        str(tmp_path),
+        "--output",
+        str(tmp_path / "output"),
+        "--consumed-record",
+        str(tmp_path / "consumed.json"),
+        "--device",
+        "cpu",
+    ]
+    result = runner.invoke(app, command)
+    assert result.exit_code == 0, result.stdout
+    assert captured["device_name"] == "cpu"
+    assert captured["preregistration_sha256"] == "a" * 64
+
+    rejected = runner.invoke(app, [*command[:-1], "cuda"])
+    assert rejected.exit_code == 2
+    assert "requires device=cpu" in rejected.stdout
+
+
+@pytest.mark.integration
 def test_cli_episode_and_evaluation_artifacts(tmp_path: Path) -> None:
     environment = yaml.safe_load(
         Path("configs/environments/grid_rescue_easy.yaml").read_text(encoding="utf-8")
@@ -42,10 +93,10 @@ def test_cli_episode_and_evaluation_artifacts(tmp_path: Path) -> None:
     evaluation = {
         "schema_version": 2,
         "name": "cli-smoke",
-        "seeds": [20000],
+        "seeds": [10000],
         "bootstrap_samples": 0,
         "bootstrap_confidence": 0.95,
-        "seed_partition": "test",
+        "seed_partition": "validation",
         "seed_partitions": {
             "train": {"start": 0, "count": 10_000},
             "validation": {"start": 10_000, "count": 1_000},
@@ -109,10 +160,10 @@ def test_cli_generalization_uses_only_authoritative_config_paths(tmp_path: Path)
     evaluation = {
         "schema_version": 2,
         "name": "generalization-smoke",
-        "seeds": [20000],
+        "seeds": [10000],
         "bootstrap_samples": 0,
         "bootstrap_confidence": 0.95,
-        "seed_partition": "test",
+        "seed_partition": "validation",
         "seed_partitions": {
             "train": {"start": 0, "count": 10_000},
             "validation": {"start": 10_000, "count": 1_000},
@@ -409,7 +460,7 @@ def test_cli_training_checkpoint_evaluation_and_policy_comparison(  # noqa: PLR0
         ],
     )
     assert forbidden.exit_code == 2
-    assert "refuses test seeds" in forbidden.stdout
+    assert "partition is consumed" in forbidden.stdout
 
 
 @pytest.mark.integration
@@ -458,3 +509,22 @@ def test_day6_seed_command_preserves_root_identity_and_rejects_test_partition(
     )
     assert forbidden.exit_code == 2
     assert "validation seed partition" in forbidden.stdout
+
+
+@pytest.mark.integration
+def test_candidate_verification_reports_final_partition_consumed() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "--json-logs",
+            "config",
+            "verify-candidate",
+            "--candidate",
+            "configs/training/mappo_final_candidate.yaml",
+            "--freeze-record",
+            "configs/training/mappo_final_candidate.freeze.json",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    record = json.loads(result.stdout.strip())
+    assert record["test_partition_consumed"] is True
