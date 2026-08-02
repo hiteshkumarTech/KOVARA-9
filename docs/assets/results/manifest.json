@@ -1,0 +1,117 @@
+{
+  "baseline_comparison": {
+    "frontier": {
+      "completion_progress": 0.9479166666666667,
+      "exploration_coverage": 0.9035624117231639,
+      "success_rate": 0.855
+    },
+    "random": {
+      "completion_progress": 0.6383333333333333,
+      "exploration_coverage": 0.9042712747175141,
+      "success_rate": 0.14
+    },
+    "trained_mean": {
+      "completion_progress": 0.12694444444444444,
+      "exploration_coverage": 0.5016276777306968,
+      "success_rate": 0.0
+    }
+  },
+  "figures": [
+    "success-rate-by-policy.svg",
+    "targets-recovered-by-policy.svg",
+    "exploration-coverage-by-policy.svg",
+    "trained-minus-untrained.svg",
+    "baseline-comparison.svg",
+    "validation-to-heldout-gaps.svg"
+  ],
+  "generalization_gaps": {
+    "seed_0": {
+      "completion_progress": -0.0008333333333333248,
+      "exploration_coverage": 0.020193326271186418,
+      "success_rate": 0.0,
+      "targets_recovered": -0.14
+    },
+    "seed_1": {
+      "completion_progress": 0.05083333333333334,
+      "exploration_coverage": 0.030690324858757,
+      "success_rate": 0.0,
+      "targets_recovered": 0.11499999999999999
+    },
+    "seed_2": {
+      "completion_progress": 0.06916666666666667,
+      "exploration_coverage": 0.05864009533898307,
+      "success_rate": 0.0,
+      "targets_recovered": 0.18499999999999994
+    }
+  },
+  "paired_trained_minus_untrained": {
+    "seed_0": {
+      "exploration_coverage": 0.1377352577683616,
+      "targets_recovered": 0.755
+    },
+    "seed_1": {
+      "exploration_coverage": 0.0855115642655367,
+      "targets_recovered": 0.37
+    },
+    "seed_2": {
+      "exploration_coverage": 0.08439265536723164,
+      "targets_recovered": 0.33
+    }
+  },
+  "policy_metrics": {
+    "frontier": {
+      "exploration_coverage": 0.9035624117231639,
+      "success_rate": 0.855,
+      "targets_recovered": 4.72
+    },
+    "random": {
+      "exploration_coverage": 0.9042712747175141,
+      "success_rate": 0.14,
+      "targets_recovered": 3.18
+    },
+    "trained_seed_0": {
+      "exploration_coverage": 0.5179422669491526,
+      "success_rate": 0.0,
+      "targets_recovered": 0.79
+    },
+    "trained_seed_1": {
+      "exploration_coverage": 0.50236052259887,
+      "success_rate": 0.0,
+      "targets_recovered": 0.535
+    },
+    "trained_seed_2": {
+      "exploration_coverage": 0.4845802436440678,
+      "success_rate": 0.0,
+      "targets_recovered": 0.515
+    },
+    "untrained_seed_0": {
+      "exploration_coverage": 0.380207009180791,
+      "success_rate": 0.0,
+      "targets_recovered": 0.035
+    },
+    "untrained_seed_1": {
+      "exploration_coverage": 0.4168489583333333,
+      "success_rate": 0.0,
+      "targets_recovered": 0.165
+    },
+    "untrained_seed_2": {
+      "exploration_coverage": 0.40018758827683615,
+      "success_rate": 0.0,
+      "targets_recovered": 0.185
+    }
+  },
+  "policy_order": [
+    "random",
+    "frontier",
+    "untrained_seed_0",
+    "untrained_seed_1",
+    "untrained_seed_2",
+    "trained_seed_0",
+    "trained_seed_1",
+    "trained_seed_2"
+  ],
+  "provenance": "Values are selected directly from the committed Day 8 JSON; no evaluation is run.",
+  "schema_version": 1,
+  "source": "docs/day8-final-heldout-results.json",
+  "source_sha256": "4d9de7d35a2cbee5660ad2d21982ad8706f3ba52b85263fd9ab988aea615a2fd"
+}

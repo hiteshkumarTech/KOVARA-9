@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">Validation-to-held-out generalization gaps</title>
+  <desc id="desc">Gap = validation minus held-out; positive values indicate held-out degradation.</desc>
+  <rect width="1200" height="680" fill="#ffffff"/>
+  <text x="60.00" y="52.00" text-anchor="start" font-family="sans-serif" font-size="28" font-weight="700" fill="#172033">Validation-to-held-out generalization gaps</text>
+  <text x="224.00" y="105.00" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700" fill="#172033">Target gap</text>
+  <line x1="105.00" y1="490.00" x2="378.00" y2="490.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="494.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">-0.179</text>
+  <line x1="105.00" y1="402.50" x2="378.00" y2="402.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="406.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">-0.078</text>
+  <line x1="105.00" y1="315.00" x2="378.00" y2="315.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="319.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.022</text>
+  <line x1="105.00" y1="227.50" x2="378.00" y2="227.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="231.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.123</text>
+  <line x1="105.00" y1="140.00" x2="378.00" y2="140.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="144.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.224</text>
+  <line x1="105.00" y1="334.54" x2="378.00" y2="334.54" stroke="#334155" stroke-width="1.5"/>
+  <rect x="124.11" y="334.54" width="52.78" height="121.59" rx="3" fill="#2563eb"/>
+  <text x="150.50" y="473.13" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">-0.140</text>
+  <text x="150.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Seed 0</text>
+  <rect x="215.11" y="234.67" width="52.78" height="99.88" rx="3" fill="#dc6b2f"/>
+  <text x="241.50" y="226.67" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">+0.115</text>
+  <text x="241.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Seed 1</text>
+  <rect x="306.11" y="173.87" width="52.78" height="160.67" rx="3" fill="#dc6b2f"/>
+  <text x="332.50" y="165.87" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">+0.185</text>
+  <text x="332.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Seed 2</text>
+  <text x="600.00" y="105.00" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700" fill="#172033">Completion gap</text>
+  <line x1="481.00" y1="490.00" x2="754.00" y2="490.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="494.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">-0.021</text>
+  <line x1="481.00" y1="402.50" x2="754.00" y2="402.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="406.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.007</text>
+  <line x1="481.00" y1="315.00" x2="754.00" y2="315.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="319.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.034</text>
+  <line x1="481.00" y1="227.50" x2="754.00" y2="227.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="231.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.062</text>
+  <line x1="481.00" y1="140.00" x2="754.00" y2="140.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="144.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.089</text>
+  <line x1="481.00" y1="423.71" x2="754.00" y2="423.71" stroke="#334155" stroke-width="1.5"/>
+  <rect x="500.11" y="423.71" width="52.78" height="2.65" rx="3" fill="#2563eb"/>
+  <text x="526.50" y="443.36" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">-0.001</text>
+  <text x="526.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Seed 0</text>
+  <rect x="591.11" y="261.97" width="52.78" height="161.74" rx="3" fill="#dc6b2f"/>
+  <text x="617.50" y="253.97" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">+0.051</text>
+  <text x="617.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Seed 1</text>
+  <rect x="682.11" y="203.64" width="52.78" height="220.08" rx="3" fill="#dc6b2f"/>
+  <text x="708.50" y="195.64" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">+0.069</text>
+  <text x="708.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Seed 2</text>
+  <text x="976.00" y="105.00" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700" fill="#172033">Coverage gap</text>
+  <line x1="857.00" y1="490.00" x2="1130.00" y2="490.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="494.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.000</text>
+  <line x1="857.00" y1="402.50" x2="1130.00" y2="402.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="406.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.020</text>
+  <line x1="857.00" y1="315.00" x2="1130.00" y2="315.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="319.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.039</text>
+  <line x1="857.00" y1="227.50" x2="1130.00" y2="227.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="231.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.059</text>
+  <line x1="857.00" y1="140.00" x2="1130.00" y2="140.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="144.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">+0.079</text>
+  <line x1="857.00" y1="490.00" x2="1130.00" y2="490.00" stroke="#334155" stroke-width="1.5"/>
+  <rect x="876.11" y="400.13" width="52.78" height="89.87" rx="3" fill="#2563eb"/>
+  <text x="902.50" y="392.13" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">+0.020</text>
+  <text x="902.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Seed 0</text>
+  <rect x="967.11" y="353.41" width="52.78" height="136.59" rx="3" fill="#dc6b2f"/>
+  <text x="993.50" y="345.41" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">+0.031</text>
+  <text x="993.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Seed 1</text>
+  <rect x="1058.11" y="229.01" width="52.78" height="260.99" rx="3" fill="#dc6b2f"/>
+  <text x="1084.50" y="221.01" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">+0.059</text>
+  <text x="1084.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Seed 2</text>
+  <text x="60.00" y="656.00" text-anchor="start" font-family="sans-serif" font-size="13" font-weight="400" fill="#64748b">Source: docs/day8-final-heldout-results.json · deterministic SVG · SHA-256 4d9de7d35a2cbee5…</text>
+</svg>

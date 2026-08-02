@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">Random, frontier, and trained-mean comparison</title>
+  <desc id="desc">The frontier policy is a handcrafted heuristic, not a learned model.</desc>
+  <rect width="1200" height="680" fill="#ffffff"/>
+  <text x="60.00" y="52.00" text-anchor="start" font-family="sans-serif" font-size="28" font-weight="700" fill="#172033">Random, frontier, and trained-mean comparison</text>
+  <text x="224.00" y="105.00" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700" fill="#172033">Success</text>
+  <line x1="105.00" y1="490.00" x2="378.00" y2="490.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="494.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">0.0%</text>
+  <line x1="105.00" y1="402.50" x2="378.00" y2="402.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="406.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">25.0%</text>
+  <line x1="105.00" y1="315.00" x2="378.00" y2="315.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="319.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">50.0%</text>
+  <line x1="105.00" y1="227.50" x2="378.00" y2="227.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="231.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">75.0%</text>
+  <line x1="105.00" y1="140.00" x2="378.00" y2="140.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="97.00" y="144.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">100.0%</text>
+  <line x1="105.00" y1="490.00" x2="378.00" y2="490.00" stroke="#334155" stroke-width="1.5"/>
+  <rect x="124.11" y="441.00" width="52.78" height="49.00" rx="3" fill="#64748b"/>
+  <text x="150.50" y="433.00" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">14.0%</text>
+  <text x="150.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Random</text>
+  <rect x="215.11" y="190.75" width="52.78" height="299.25" rx="3" fill="#0f766e"/>
+  <text x="241.50" y="182.75" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">85.5%</text>
+  <text x="241.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Frontier</text>
+  <rect x="306.11" y="490.00" width="52.78" height="2.00" rx="3" fill="#7c3aed"/>
+  <text x="332.50" y="482.00" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">0.0%</text>
+  <text x="332.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Trained</text>
+  <text x="600.00" y="105.00" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700" fill="#172033">Completion</text>
+  <line x1="481.00" y1="490.00" x2="754.00" y2="490.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="494.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">0.0%</text>
+  <line x1="481.00" y1="402.50" x2="754.00" y2="402.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="406.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">25.0%</text>
+  <line x1="481.00" y1="315.00" x2="754.00" y2="315.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="319.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">50.0%</text>
+  <line x1="481.00" y1="227.50" x2="754.00" y2="227.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="231.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">75.0%</text>
+  <line x1="481.00" y1="140.00" x2="754.00" y2="140.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="473.00" y="144.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">100.0%</text>
+  <line x1="481.00" y1="490.00" x2="754.00" y2="490.00" stroke="#334155" stroke-width="1.5"/>
+  <rect x="500.11" y="266.58" width="52.78" height="223.42" rx="3" fill="#64748b"/>
+  <text x="526.50" y="258.58" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">63.8%</text>
+  <text x="526.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Random</text>
+  <rect x="591.11" y="158.23" width="52.78" height="331.77" rx="3" fill="#0f766e"/>
+  <text x="617.50" y="150.23" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">94.8%</text>
+  <text x="617.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Frontier</text>
+  <rect x="682.11" y="445.57" width="52.78" height="44.43" rx="3" fill="#7c3aed"/>
+  <text x="708.50" y="437.57" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">12.7%</text>
+  <text x="708.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Trained</text>
+  <text x="976.00" y="105.00" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700" fill="#172033">Coverage</text>
+  <line x1="857.00" y1="490.00" x2="1130.00" y2="490.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="494.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">0.0%</text>
+  <line x1="857.00" y1="402.50" x2="1130.00" y2="402.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="406.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">25.0%</text>
+  <line x1="857.00" y1="315.00" x2="1130.00" y2="315.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="319.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">50.0%</text>
+  <line x1="857.00" y1="227.50" x2="1130.00" y2="227.50" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="231.50" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">75.0%</text>
+  <line x1="857.00" y1="140.00" x2="1130.00" y2="140.00" stroke="#dbe3ef" stroke-width="1.0"/>
+  <text x="849.00" y="144.00" text-anchor="end" font-family="sans-serif" font-size="11" font-weight="400" fill="#64748b">100.0%</text>
+  <line x1="857.00" y1="490.00" x2="1130.00" y2="490.00" stroke="#334155" stroke-width="1.5"/>
+  <rect x="876.11" y="173.51" width="52.78" height="316.49" rx="3" fill="#64748b"/>
+  <text x="902.50" y="165.51" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">90.4%</text>
+  <text x="902.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Random</text>
+  <rect x="967.11" y="173.75" width="52.78" height="316.25" rx="3" fill="#0f766e"/>
+  <text x="993.50" y="165.75" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">90.4%</text>
+  <text x="993.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Frontier</text>
+  <rect x="1058.11" y="314.43" width="52.78" height="175.57" rx="3" fill="#7c3aed"/>
+  <text x="1084.50" y="306.43" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="600" fill="#172033">50.2%</text>
+  <text x="1084.50" y="516.00" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="400" fill="#172033">Trained</text>
+  <text x="60.00" y="656.00" text-anchor="start" font-family="sans-serif" font-size="13" font-weight="400" fill="#64748b">Source: docs/day8-final-heldout-results.json · deterministic SVG · SHA-256 4d9de7d35a2cbee5…</text>
+</svg>
