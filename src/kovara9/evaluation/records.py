@@ -18,10 +18,16 @@ class EpisodeRecord:
     exploration_coverage: float
     duplicated_exploration: float
     communication_messages: int
+    communication_rejections: int
     messages_per_agent_step: float
     team_efficiency: float
     shared_return: float
     termination_reason: str
+    completion_progress: float = 0.0
+    targets_observed: int = 0
+    discovery_to_recovery_conversion: float = 0.0
+    collisions: int = 0
+    blocked_movements: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-compatible mapping."""

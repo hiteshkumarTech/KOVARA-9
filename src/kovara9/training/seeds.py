@@ -35,6 +35,12 @@ class ExperimentSeedStreams:
 
         return derive_seed(self.root_seed, "policy", "sampling")
 
+    @property
+    def optimizer_shuffle(self) -> int:
+        """Seed deterministic PPO epoch and minibatch shuffling."""
+
+        return derive_seed(self.root_seed, "optimizer", "shuffle")
+
     def environment_instance(self, environment_id: int) -> int:
         """Identify one environment instance independently of reset order."""
 

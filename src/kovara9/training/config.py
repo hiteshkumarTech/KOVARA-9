@@ -37,6 +37,8 @@ class TrainingConfig(StrictModel):
     minibatch_size: int = Field(ge=1, le=1_000_000)
     discount_factor: float = Field(gt=0.0, le=1.0)
     gae_lambda: float = Field(ge=0.0, le=1.0)
+    normalize_advantages: bool
+    advantage_normalization_epsilon: float = Field(gt=0.0, le=1.0)
     clipping_coefficient: float = Field(gt=0.0, le=1.0)
     entropy_coefficient: float = Field(ge=0.0, le=1.0)
     value_coefficient: float = Field(ge=0.0, le=10.0)

@@ -106,9 +106,21 @@ def aggregate_records(
     metric_values = {
         "success_rate": [float(record.success) for record in records],
         "episode_length": [float(record.episode_length) for record in records],
+        "targets_recovered": [float(record.targets_recovered) for record in records],
+        "completion_progress": [record.completion_progress for record in records],
+        "targets_observed": [float(record.targets_observed) for record in records],
+        "discovery_to_recovery_conversion": [
+            record.discovery_to_recovery_conversion for record in records
+        ],
+        "collisions": [float(record.collisions) for record in records],
+        "blocked_movements": [float(record.blocked_movements) for record in records],
+        "target_recovery_rate": [
+            record.targets_recovered / record.total_targets for record in records
+        ],
         "exploration_coverage": [record.exploration_coverage for record in records],
         "duplicated_exploration": [record.duplicated_exploration for record in records],
         "communication_messages": [float(record.communication_messages) for record in records],
+        "communication_rejections": [float(record.communication_rejections) for record in records],
         "messages_per_agent_step": [record.messages_per_agent_step for record in records],
         "team_efficiency": [record.team_efficiency for record in records],
         "shared_return": [record.shared_return for record in records],

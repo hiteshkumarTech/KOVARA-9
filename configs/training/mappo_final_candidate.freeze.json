@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_configuration": "configs/training/mappo_candidate.yaml",
+  "selection_metric": "validation_success_rate_then_targets_recovered_then_team_efficiency",
+  "selection_reason": "Day 7 shaped reward produced 0.00 success and 0.40 targets recovered for all three seeds, below the unchanged candidate's 0.667 mean targets recovered; retain unchanged control.",
+  "alternatives_evaluated": ["configs/training/mappo_candidate.yaml", "configs/training/mappo_day7_shaped.yaml"],
+  "configuration_fingerprint": "f085babe1905a441fed9c1b9c64076f875a476ab753105ca17ce61d9338ada1c",
+  "reward_fingerprint": "e3c4990b5a16e12edbb40da1038b5aa146e4d0643fb866fadbe2ba84b2a4c508",
+  "environment_fingerprint": "ce3e4200324577a6ffe22a4c6c60a80915ef0917abdee4e4e30799c39668f47b",
+  "training_seeds": [0, 1, 2],
+  "validation_seeds": [10000,10001,10002,10003,10004,10005,10006,10007,10008,10009,10010,10011,10012,10013,10014,10015,10016,10017,10018,10019],
+  "git_commit": "db6dc66df6a552c6f9bd7dbcb7cdf2364301123"
+}

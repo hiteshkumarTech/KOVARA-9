@@ -26,6 +26,8 @@ def _training_payload() -> dict[str, object]:
         "minibatch_size": 4,
         "discount_factor": 0.99,
         "gae_lambda": 0.95,
+        "normalize_advantages": True,
+        "advantage_normalization_epsilon": 1e-8,
         "clipping_coefficient": 0.2,
         "entropy_coefficient": 0.01,
         "value_coefficient": 0.5,
@@ -94,3 +96,17 @@ def test_training_seed_must_belong_to_declared_train_partition(tmp_path: Path) -
     path.write_text(yaml.safe_dump(payload), encoding="utf-8")
     with pytest.raises(ConfigurationError, match="outside the declared train"):
         load_training_inputs(path)
+
+
+def test_training_inputs_allow_a_smaller_uneven_final_minibatch(tmp_path: Path) -> None:
+    payload = yaml.safe_load(Path("configs/training/mappo_smoke.yaml").read_text(encoding="utf-8"))
+    payload["minibatch_size"] = 7
+    payload["environment_config"] = str(
+        Path("configs/environments/grid_rescue_easy.yaml").resolve()
+    )
+    payload["validation_config"] = str(
+        Path("configs/evaluation/training_validation_smoke.yaml").resolve()
+    )
+    path = tmp_path / "uneven-minibatch.yaml"
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+    assert load_training_inputs(path).training.minibatch_size == 7

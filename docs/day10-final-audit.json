@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "completed_at_utc": "2026-08-02T11:17:46.0233952Z",
+  "audit_scope": "Committed metadata, configuration, reports, documentation, packaging, and non-scientific smoke workflows only; no raw final-test episode or final evaluation was opened or executed.",
+  "classification": "exploration_transfer_without_task_completion",
+  "classification_label": "Exploration transfer without task completion",
+  "git": {
+    "branch": "v0.1-ten-day-sprint",
+    "entry_commit": "7abf1bd289135919145bfa3e74b7ec19d9a6861a",
+    "origin_branch_commit_at_entry": "7abf1bd289135919145bfa3e74b7ec19d9a6861a",
+    "entry_worktree_clean": true,
+    "audit_report_generation_state": "dirty_expected_day10_changes_pending_commit"
+  },
+  "fingerprints": {
+    "candidate_configuration": "f085babe1905a441fed9c1b9c64076f875a476ab753105ca17ce61d9338ada1c",
+    "candidate_configuration_file_sha256": "cc75394a5d7d99f8e65eea70565c803c157d4ed8b8cc64d0864af13e78a6a64e",
+    "candidate_freeze_record_sha256": "76701d4534151d29f028f57ef866be9a2b9d74b971864d3616c819f407c3cd53",
+    "candidate_fingerprint_recorded_by_freeze": "f085babe1905a441fed9c1b9c64076f875a476ab753105ca17ce61d9338ada1c",
+    "reward": "e3c4990b5a16e12edbb40da1038b5aa146e4d0643fb866fadbe2ba84b2a4c508",
+    "reference_environment": "ce3e4200324577a6ffe22a4c6c60a80915ef0917abdee4e4e30799c39668f47b",
+    "structural_environment": "a95dfaf420bf2a45bfc761e7d857d3b4093ee8389af1d4bd0de3f0b81a6e0598",
+    "day8_report_sha256": "4d9de7d35a2cbee5660ad2d21982ad8706f3ba52b85263fd9ab988aea615a2fd",
+    "preregistration_sha256": "cde300dcf8cc33f559bf5accaf99f541eafdfc57ed7559a421816a1fb3601b9a",
+    "preregistration_markdown_sha256": "27af0fa9928e5eddefdd5c07f2d8e7491c5a198e8b55b1e58be9e74b08e496fc",
+    "consumption_record_sha256": "059507747e91ef198cc34a3377276d657248375e839ee64c4dfb9e538ec8532f",
+    "dependency_lock_sha256": "d7a5dd5651a8c9e678feb9b916153c4eb3da36f24cf4caab8396bab734909f7e",
+    "figure_manifest_sha256": "271503cabfe04da7c8c36634f1174aed8afe4e2708d13d9d9400752daed8a3fa"
+  },
+  "partitions": {
+    "training_seeds": [0, 1, 2],
+    "validation_seeds": {
+      "start": 10000,
+      "stop_exclusive": 10020,
+      "count": 20,
+      "exact_rule": "ascending_all_integers"
+    },
+    "final_test_seeds": {
+      "start": 20000,
+      "stop_exclusive": 20100,
+      "count": 100,
+      "exact_rule": "ascending_all_integers"
+    },
+    "configured_ranges": {
+      "train": [0, 10000],
+      "validation": [10000, 11000],
+      "test": [20000, 21000]
+    },
+    "pairwise_disjoint": true,
+    "overlap_count": 0
+  },
+  "final_test": {
+    "consumption_status": "complete",
+    "consumed_once": true,
+    "guard_active": true,
+    "no_post_test_tuning": true,
+    "rerun_during_day10": false
+  },
+  "results": {
+    "random": {
+      "episodes": 200,
+      "successes": 28,
+      "success_rate": 0.14,
+      "targets_recovered": 3.18,
+      "completion_progress": 0.6383333333333333,
+      "exploration_coverage": 0.9042712747175141
+    },
+    "frontier": {
+      "kind": "handcrafted_frontier_heuristic",
+      "episodes": 200,
+      "successes": 171,
+      "success_rate": 0.855,
+      "targets_recovered": 4.72,
+      "completion_progress": 0.9479166666666667,
+      "exploration_coverage": 0.9035624117231639
+    },
+    "exact_untrained_mean": {
+      "episodes": 600,
+      "successes": 0,
+      "success_rate": 0.0,
+      "targets_recovered": 0.12833333333333333,
+      "completion_progress": 0.02666666666666667,
+      "exploration_coverage": 0.3990811852636535
+    },
+    "frozen_trained_mean": {
+      "episodes": 600,
+      "successes": 0,
+      "success_rate": 0.0,
+      "targets_recovered": 0.6133333333333334,
+      "completion_progress": 0.12694444444444444,
+      "team_efficiency": 0.0007583333333333334,
+      "exploration_coverage": 0.5016276777306968
+    }
+  },
+  "software": {
+    "package_version": "0.1.0",
+    "scientific_protocol_label": "v0.1",
+    "python_version": "3.12.13",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "historical_day8_quality": {
+    "passed": 253,
+    "skipped": 1,
+    "coverage_percent": 90.19
+  },
+  "documentation_verification": {
+    "readme_matches_day8_json": true,
+    "model_card_matches_day8_json": true,
+    "research_summary_matches_day8_json": true,
+    "negative_result_prominent": true,
+    "unsupported_marketing_claims_absent": true
+  },
+  "figures": {
+    "source_sha256": "4d9de7d35a2cbee5660ad2d21982ad8706f3ba52b85263fd9ab988aea615a2fd",
+    "values_selected_from_json": true,
+    "manually_copied_values_in_plotting_code": false,
+    "hashes_match_manifest": true,
+    "manifest_schema_version": 2,
+    "figure_sha256": {
+      "baseline-comparison.svg": "e3a3f503f2c2c7bc1c181572dd8d9e3c2c82b54b85c7e3813db8ff478bf2c210",
+      "exploration-coverage-by-policy.svg": "01a59bad2b968868d36d98d5e768259521c083e8016351150007bc5d0d7e8cc3",
+      "success-rate-by-policy.svg": "7a0adba9ca33cb006620201066d2055d851a0203618a0bc2ff3c6b27cf666037",
+      "targets-recovered-by-policy.svg": "48cb8d494e22d190b256ed3eecec41be5537d96be502382216fb65ca2bc97265",
+      "trained-minus-untrained.svg": "5a149def8840417451f958a483b5982c4e2951eb01e6283daa496844a89c510e",
+      "validation-to-heldout-gaps.svg": "f147afc90d000cb2df87c02cf9952f10e9b4b23fe6a14d9aac522e4ec35f07a2"
+    }
+  },
+  "repository_rename": {
+    "confirmed": false,
+    "current_remote_name": "KOVARA-9-",
+    "target_remote_name": "KOVARA-9",
+    "remote_changed_by_audit": false
+  },
+  "day10_quality_gates": {
+    "status": "passed",
+    "ruff_format_check": {"command": "uv run ruff format --check .", "exit_code": 0, "runtime_seconds": 0.485, "files_checked": 115},
+    "ruff_check": {"command": "uv run ruff check .", "exit_code": 0, "runtime_seconds": 0.376},
+    "mypy": {"command": "uv run mypy", "exit_code": 0, "runtime_seconds": 12.871, "source_files": 51},
+    "pytest": {"command": "uv run pytest --basetemp <fresh-writable-os-temp>", "exit_code": 0, "runtime_seconds": 89.001, "pytest_runtime_seconds": 83.20, "collected": 282, "passed": 281, "skipped": 1, "coverage_percent": 90.19},
+    "build": {"command": "uv build --out-dir <fresh-os-temp-build-directory>", "exit_code": 0, "runtime_seconds": 18.739, "wheel_sha256": "d46feb7d7e32723c25ddaa73dd8eadf41f4c4043c85f04dbc614dfa01162cb9e", "sdist_sha256": "127e0ce379873e91247d7d205146fc123757933f9b9ec6712c87f97adf7a7364"},
+    "wheel_install": {"command": "uv pip install --python <fresh-venv-python> --no-deps <built-wheel>", "exit_code": 0, "runtime_seconds": 1.839, "imported_version": "0.1.0"},
+    "figure_regeneration": {"command": "uv run python scripts/generate_result_figures.py --output-dir <fresh-os-temp-directory>", "exit_code": 0, "runtime_seconds": 0.684, "hashes_match_manifest": true},
+    "recruiter_demo": {"command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_recruiter_demo.ps1", "exit_code": 0, "runtime_seconds": 203.623, "checkpoint_supplied": false, "training_performed": false, "final_evaluation_performed": false},
+    "documentation_links": {"command": "PowerShell local Markdown-link scan", "exit_code": 0, "runtime_seconds": 0.306, "files_checked": 27},
+    "citation_parse": {"command": "uv run python -c <CITATION.cff PyYAML validation>", "exit_code": 0, "runtime_seconds": 0.755},
+    "secret_scan": {"command": "rg secret-pattern scan excluding environment and lock files", "exit_code": 0, "runtime_seconds": 0.424, "matches": 0},
+    "forbidden_artifact_scan": {"command": "git ls-files | Select-String <forbidden-artifact-pattern>", "exit_code": 0, "runtime_seconds": 0.442, "matches": 0},
+    "consumed_test_guard": {"command": "uv run pytest tests/unit/test_day10_release.py::test_consumed_final_partition_guard_remains_active --basetemp <fresh-writable-os-temp> --no-cov -q", "exit_code": 0, "runtime_seconds": 86.98, "episodes_executed": 0}
+  },
+  "scientific_integrity": {
+    "candidate_changed_after_test": false,
+    "reward_changed_after_test": false,
+    "environment_changed_after_test": false,
+    "architecture_or_hyperparameters_changed_after_test": false,
+    "recorded_results_changed": false,
+    "negative_results_softened": false,
+    "training_executed_during_day10": false,
+    "final_evaluation_executed_during_day10": false
+  },
+  "conclusion": "PASS: scientific identities and negative results are unchanged; documentation, figures, demo, tests, package, and release-preparation gates passed. Merge, rename, tag, and publication remain repository-owner actions."
+}

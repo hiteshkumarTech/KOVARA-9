@@ -51,6 +51,26 @@ def test_masked_probabilities_are_normalized_and_invalid_entries_are_zero() -> N
     assert torch.allclose(probabilities.message.sum(dim=-1), torch.ones((1, 2)))
 
 
+def test_masked_entropy_backpropagates_only_finite_gradients() -> None:
+    move_logits = torch.tensor([[1.0, -2.0, 0.5]], requires_grad=True)
+    message_logits = torch.tensor([[0.2, -0.4]], requires_grad=True)
+    distribution = FactoredActionDistribution(
+        ActorLogits(move=move_logits, message=message_logits),
+        move_action_masks=torch.tensor([[True, False, True]]),
+        message_action_masks=torch.tensor([[True, False]]),
+    )
+    statistics = distribution.evaluate_actions(
+        torch.tensor([0]),
+        torch.tensor([0]),
+    )
+    loss = -statistics.joint_log_probabilities.mean() - statistics.joint_entropy.mean()
+    loss.backward()
+    assert move_logits.grad is not None
+    assert message_logits.grad is not None
+    assert bool(torch.isfinite(move_logits.grad).all())
+    assert bool(torch.isfinite(message_logits.grad).all())
+
+
 @pytest.mark.parametrize(
     ("move_mask", "message_mask", "match"),
     [

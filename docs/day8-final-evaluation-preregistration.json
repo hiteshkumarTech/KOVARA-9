@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "status": "preregistered",
+  "created_at_utc": "2026-08-02T05:49:21.7928620Z",
+  "branch": "v0.1-ten-day-sprint",
+  "git": {
+    "remote_head_before_entry_repair": "3d12c2f92735ff8722e7959f93854eb57480f9a7",
+    "clean_scientific_snapshot_commit": "9906383d9321cad5e954f7ed6d454395c552de2f",
+    "entry_repair": "Corrected one extra character in the committed candidate fingerprint and preserved three substantive Day 7 protocol files; candidate bytes and canonical candidate identity were unchanged.",
+    "remote_sync_exception": "GitHub credentials are unavailable in the Codex sandbox; the original checkout matched origin before the repair and exact manual commit commands will be reported."
+  },
+  "research_questions": [
+    "Does each trained shared policy outperform its exact untrained initialization on unseen procedural seeds and environments?",
+    "Does validation improvement transfer to the held-out distribution?",
+    "How large is the validation-to-test generalization gap?",
+    "How do trained policies compare with random and frontier baselines?",
+    "Which positive and negative conclusions are supported by the evidence?"
+  ],
+  "candidate": {
+    "configuration": "configs/training/mappo_final_candidate.yaml",
+    "freeze_record": "configs/training/mappo_final_candidate.freeze.json",
+    "configuration_fingerprint": "f085babe1905a441fed9c1b9c64076f875a476ab753105ca17ce61d9338ada1c",
+    "reward_fingerprint": "e3c4990b5a16e12edbb40da1038b5aa146e4d0643fb866fadbe2ba84b2a4c508",
+    "environment_fingerprint": "ce3e4200324577a6ffe22a4c6c60a80915ef0917abdee4e4e30799c39668f47b",
+    "validation_fingerprint": "2a936c9e551ee20f60d6b29b9efdae2c82bf8f1873e78d8f0b0e16de08d9eb09",
+    "selection_used_validation_only": true
+  },
+  "seed_partitions": {
+    "training_seeds": [0, 1, 2],
+    "validation_seeds": [10000, 10001, 10002, 10003, 10004, 10005, 10006, 10007, 10008, 10009, 10010, 10011, 10012, 10013, 10014, 10015, 10016, 10017, 10018, 10019],
+    "configured_train_partition": {"start": 0, "stop_exclusive": 10000},
+    "configured_validation_partition": {"start": 10000, "stop_exclusive": 11000},
+    "configured_test_partition": {"start": 20000, "stop_exclusive": 21000},
+    "final_test_seeds": [20000, 20001, 20002, 20003, 20004, 20005, 20006, 20007, 20008, 20009, 20010, 20011, 20012, 20013, 20014, 20015, 20016, 20017, 20018, 20019, 20020, 20021, 20022, 20023, 20024, 20025, 20026, 20027, 20028, 20029, 20030, 20031, 20032, 20033, 20034, 20035, 20036, 20037, 20038, 20039, 20040, 20041, 20042, 20043, 20044, 20045, 20046, 20047, 20048, 20049, 20050, 20051, 20052, 20053, 20054, 20055, 20056, 20057, 20058, 20059, 20060, 20061, 20062, 20063, 20064, 20065, 20066, 20067, 20068, 20069, 20070, 20071, 20072, 20073, 20074, 20075, 20076, 20077, 20078, 20079, 20080, 20081, 20082, 20083, 20084, 20085, 20086, 20087, 20088, 20089, 20090, 20091, 20092, 20093, 20094, 20095, 20096, 20097, 20098, 20099],
+    "overlap_allowed": false
+  },
+  "evaluation": {
+    "configuration": "configs/evaluation/generalization.yaml",
+    "configuration_fingerprint": "e5cbbe68f63cac8f7f60f3ea5d5145892bc2cde5aaad3b504132c1132c41f5ef",
+    "inference": "deterministic masked argmax",
+    "device": "cpu",
+    "episode_order": "policy order below; within each policy reference environment then structural environment; seeds ascending",
+    "reference_environment": {"configuration": "configs/environments/grid_rescue_medium.yaml", "fingerprint": "ce3e4200324577a6ffe22a4c6c60a80915ef0917abdee4e4e30799c39668f47b", "role": "unseen procedural seeds in the training structure", "width": 12, "height": 12, "agents": 3, "targets": 4, "max_steps": 200, "communication_enabled": true, "communication_budget_per_agent": 8},
+    "structural_environment": {"configuration": "configs/environments/grid_rescue_hard.yaml", "fingerprint": "a95dfaf420bf2a45bfc761e7d857d3b4093ee8389af1d4bd0de3f0b81a6e0598", "role": "held-out structural environment", "width": 16, "height": 16, "agents": 4, "targets": 6, "max_steps": 300, "communication_enabled": true, "communication_budget_per_agent": 12},
+    "communication_ablation": null,
+    "reduced_communication_budget": null,
+    "latest_checkpoints": false,
+    "rejected_day7_policies": false
+  },
+  "policies": [
+    {"id": "random", "kind": "seeded_random_baseline", "training_seed": null, "checkpoint": null},
+    {"id": "frontier", "kind": "handcrafted_frontier_heuristic", "training_seed": null, "checkpoint": null},
+    {"id": "untrained_seed_0", "kind": "exact_untrained_initial_checkpoint", "training_seed": 0, "checkpoint": "runs/day6/seed-0/initial/checkpoints/step-000000000000.pt", "checkpoint_sha256": "3be3be7fa8c42ebe230fefe1419c7e3583c0c968f9548cbcd3201e39bc539470", "actor_state_sha256": "7fed8569fba32cfd9f06425478bf78288dc0c982dc4a2aa7c62ed10c3b1d9931", "critic_state_sha256": "360eb29ea6d44ac01ec1bfda36bc7c74bc8b4b39ca0cdfc231c50bf692e63633"},
+    {"id": "untrained_seed_1", "kind": "exact_untrained_initial_checkpoint", "training_seed": 1, "checkpoint": "runs/day6/seed-1/initial/checkpoints/step-000000000000.pt", "checkpoint_sha256": "9a271db3f8e76ffa646d38f412c9494ea84b2020d484cdb038ce31d744f4e7f2", "actor_state_sha256": "2c73ad5188056be79d59cdc0777dc41d9ad3e4a14e5460e86b268f59df805b98", "critic_state_sha256": "9d5bf06523f2879a8fc7fc06b8b7bd84babfba43ef45373e66ac378b05f7754f"},
+    {"id": "untrained_seed_2", "kind": "exact_untrained_initial_checkpoint", "training_seed": 2, "checkpoint": "runs/day6/seed-2/initial/checkpoints/step-000000000000.pt", "checkpoint_sha256": "0b541c4b75d6f3f361fdfd08666a4f977720171d3ce372f5f1872e99034621f3", "actor_state_sha256": "b87f0c15a1d76a2734f89c774c3bf8e5b790a862b9c21e7f8ace76caa4ce15d8", "critic_state_sha256": "64f5e3c688637fb88ddc96d7a693c65ecbc2284a2be7e4cdf090894f323807b0"},
+    {"id": "trained_seed_0", "kind": "frozen_day6_best_checkpoint", "training_seed": 0, "checkpoint": "runs/day6/seed-0/training/checkpoints/best.pt", "checkpoint_sha256": "406d917715352589176c1f85a3a36002a84b11ca2557c13b9bce2a49612a38fd", "actor_state_sha256": "41e1a5e38bbf10f158d274c2250856a966d18bb2e08133317200571b5601d817", "critic_state_sha256": "81c6176e243ea4e92f97147926b736db924fdc3eb59cc39c44103339878c3b38", "selected_environment_steps": 16384},
+    {"id": "trained_seed_1", "kind": "frozen_day6_best_checkpoint", "training_seed": 1, "checkpoint": "runs/day6/seed-1/training/checkpoints/best.pt", "checkpoint_sha256": "2cb9c83774ea7837abbc347b8ddbed4e40b45d10be48297f1806357acc74e19b", "actor_state_sha256": "573a9f0f321b3a16edebba4a728b4958d527b0d03a79ac9df23ca9e92dae1332", "critic_state_sha256": "9f8158c60339500841d6abeedd9ae0e445a41737483166ec8ceb7b33983e0b87", "selected_environment_steps": 6144},
+    {"id": "trained_seed_2", "kind": "frozen_day6_best_checkpoint", "training_seed": 2, "checkpoint": "runs/day6/seed-2/training/checkpoints/best.pt", "checkpoint_sha256": "95d3efcde185e42d09d052f46daddefcdb3cc2b777e39c2f4cda69c5bc4b7eb1", "actor_state_sha256": "7cef7263311c0d0090643e162c4b414e209a348c16e7835a0727d06793dbcd92", "critic_state_sha256": "c71b4f4a379769c6b17fead6e0f4fe5e81f20425fa2f776f0fefeef806ba40dc", "selected_environment_steps": 14336}
+  ],
+  "metrics": {
+    "primary": "task_success_rate",
+    "secondary": ["targets_recovered", "team_efficiency", "successful_episode_length", "completion_progress"],
+    "diagnostic": ["exploration_coverage", "duplicated_exploration", "targets_observed", "discovery_to_recovery_conversion", "collisions", "blocked_movements", "communication_messages", "communication_rejections", "messages_per_agent_step", "inference_latency_ms"],
+    "raw_reward_role": "within-environment diagnostic only; never the primary metric and never used for incompatible cross-environment or cross-reward conclusions",
+    "successful_episode_length_when_no_success": "not_applicable"
+  },
+  "diagnostic_definitions": {
+    "targets_observed": "Count of distinct true target cells that entered at least one agent's configured local observation radius; centralized target state is used only by the evaluator metric, never by a policy.",
+    "discovery_to_recovery_conversion": "targets_recovered divided by targets_observed, defined as zero when targets_observed is zero.",
+    "blocked_movements": "Count of non-STAY movement attempts reported blocked by the simulator.",
+    "collisions": "Count of non-STAY movement attempts blocked by another agent through a contested destination, swap, movement cycle, or occupied-agent dependency; wall, boundary, and obstacle blocks are excluded."
+  },
+  "aggregation": {
+    "episode_level": "For each policy and environment, retain all 100 ordered episode rows and report mean, sample standard deviation, minimum, maximum, and the configured deterministic 95% percentile bootstrap interval with 2000 resamples.",
+    "held_out_policy_value": "Equal-episode pooled mean over the 100 reference-structure test episodes and 100 structural test episodes.",
+    "training_seed_level": "For trained and exact-untrained policies, report every seed separately and aggregate the three seed-level held-out values using mean, sample standard deviation, minimum, maximum, and a deterministic 95% percentile bootstrap interval with 10000 resamples. This interval is descriptive and is not a significance test.",
+    "pairing": "Trained-minus-untrained is paired by training seed, environment, and ordered episode seed. Trained-minus-random and trained-minus-frontier use the same environment and ordered episode seed. No failed or zero-success seed may be omitted.",
+    "baseline_reuse": "Random and frontier are executed once per environment; their aligned episode rows are paired with each learned policy without rerunning the baseline."
+  },
+  "generalization_gaps": {
+    "primary_definition": "generalization_gap = validation_metric - held_out_policy_value",
+    "positive_interpretation": "A positive gap means held-out degradation relative to validation.",
+    "reported_decompositions": ["validation_minus_reference_structure_test", "validation_minus_structural_test", "reference_structure_test_minus_structural_test"],
+    "validation_sources": "runs/day6/seed-{0,1,2}/best-comparison aligned validation artifacts; random and frontier are the stored identical validation baselines",
+    "reward_return_excluded": true
+  },
+  "classification_rule_order": [
+    "evaluation_failure: any missing policy/seed/environment, non-finite value, alignment defect, preregistration mismatch, checkpoint mutation, or unusable technical result prevents a valid conclusion",
+    "reproducible_task_learning_and_transfer: every trained seed has positive paired success improvement over exact untrained, aggregate trained success exceeds random, and trained targets recovered and completion progress also exceed both exact untrained and random",
+    "negative_transfer: trained success is lower than exact untrained, or when success ties, mean trained completion progress is lower with at least two of three seed-paired differences non-positive and at least one strictly negative",
+    "exploration_transfer_without_task_completion: all trained held-out success rates are zero, negative-transfer conditions are false, and at least two of three trained seeds have positive paired coverage or targets-recovered improvement",
+    "weak_or_inconsistent_transfer: at least one trained seed improves success, targets recovered, or completion progress over exact untrained, but the reproducible-transfer rule is not met",
+    "no_meaningful_transfer: none of the preceding evidence categories applies"
+  ],
+  "integrity_protocol": {
+    "checkpoint_preflight": "Verify checkpoint file, actor, critic, optimizer-state, candidate, reward, environment, training-seed, and selected-step identities before creating the consumption record.",
+    "immutability": "Fingerprint checkpoint files and loaded actor, critic, and optimizer states before and after evaluation; all must match.",
+    "rng": "Neural policies use deterministic masked argmax and consume no policy RNG. Random and frontier use explicit per-episode, per-agent derived seeds. Torch process RNG state must match before and after each neural suite.",
+    "learning": "Never construct or step an optimizer; never update actor, critic, checkpoint, or training state.",
+    "one_time": "Atomically claim configs/evaluation/final_test_consumed.json after all non-test preflight checks and immediately before the first test episode; any existing claim blocks evaluation.",
+    "protocol_lock": "The byte-level SHA-256 of this authoritative JSON preregistration is passed to the final command and recorded in every final artifact. The scientific protocol must not be edited after the first episode begins.",
+    "failures": "A preflight failure consumes no seed. A failure after the atomic claim remains visible and blocks an ordinary rerun; any later authorized replication must use a new untouched partition."
+  },
+  "success_interpretation": "Support requires held-out task-metric improvement under the ordered classification rules; exploration alone is not task completion.",
+  "failure_interpretation": "Zero success, inconsistent seed effects, baseline inferiority, negative transfer, or integrity failure must remain explicit and must not be reframed as successful AI.",
+  "post_test_rules": ["no reward changes", "no hyperparameter changes", "no architecture changes", "no candidate reselection", "no retraining from test performance", "no test-seed debugging", "no Day 9 work before report completion"],
+  "software": {"python": "3.12.13", "platform": "Windows-11-10.0.26200-SP0", "processor": "Intel64 Family 6 Model 142 Stepping 10, GenuineIntel", "torch": "2.13.0+cpu", "numpy": "2.5.1", "pydantic": "2.13.4", "gymnasium": "1.3.0", "pettingzoo": "1.26.1", "typer": "0.27.0", "PyYAML": "6.0.3", "structlog": "25.5.0", "kovara9": "0.1.0", "uv_lock_sha256": "d7a5dd5651a8c9e678feb9b916153c4eb3da36f24cf4caab8396bab734909f7e"},
+  "command_pattern": "python -m kovara9.cli final-evaluate --candidate configs/training/mappo_final_candidate.yaml --freeze-record configs/training/mappo_final_candidate.freeze.json --eval-config configs/evaluation/generalization.yaml --preregistration docs/day8-final-evaluation-preregistration.json --preregistration-sha256 <BYTE_SHA256> --artifact-root E:\\KOVARA-9 --output E:\\KOVARA-9\\runs\\day8\\final --consumed-record configs/evaluation/final_test_consumed.json --device cpu"
+}

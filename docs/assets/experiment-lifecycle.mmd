@@ -1,0 +1,11 @@
+flowchart LR
+    P0[Phase 0 simulator and baselines] --> HARDEN[API, invariants, and reproducibility hardening]
+    HARDEN --> OPT[PPO and GAE optimization pipeline]
+    OPT --> DET[Deterministic checkpoint and resume]
+    DET --> DAY5[Day 5 first short training]
+    DAY5 --> DAY6[Day 6 three-seed validation]
+    DAY6 --> DAY7[Day 7 controlled reward experiment]
+    DAY7 --> FREEZE[Frozen Day 6 candidate selected on validation]
+    FREEZE --> PREREG[Day 8 preregistration]
+    PREREG --> TEST[One held-out evaluation]
+    TEST --> RESULT[Exploration transfer without task completion]

@@ -30,12 +30,16 @@ identical configurations are rejected rather than being labelled as generalizati
 
 - **Success:** all targets recovered before truncation.
 - **Episode length:** joint environment ticks.
+- **Targets recovered:** absolute targets recovered and the fraction of configured targets recovered.
 - **Coverage:** the union of reachable cells observed by any agent divided by all reachable cells.
 - **Duplicated exploration:** redundant per-agent unique observed cells divided by the sum of
   per-agent unique observed cells.
 - **Communication cost:** non-silent valid tokens and tokens per active agent-step.
 - **Team efficiency:** recovered targets divided by active agent-steps.
 - **Return:** shared shaped reward, treated as an optimization diagnostic.
+- **Inference performance:** observed wall-clock policy-call count, total seconds, and mean latency
+  at batch size one. Timing is kept outside deterministic episode records because it is a platform
+  measurement, not a behavioral metric.
 - **Seed generalization gap:** reference success rate minus held-out-seed success rate.
 - **Structural generalization gap:** reference-preset success rate minus shifted-preset success rate.
 
@@ -53,7 +57,8 @@ schedule, optimizer coefficients, checkpoint/evaluation frequencies, device poli
 mode, and training seed. Paths resolve relative to the owning YAML. Cross-validation requires the
 training seed to belong to the declared train partition and periodic evaluation to select the
 validation partition. Total joint environment steps and checkpoint/evaluation frequencies align to
-complete rollout boundaries; minibatches divide the resulting agent-transition batch exactly.
+complete rollout boundaries. PPO consumes every valid agent transition and permits a smaller final
+minibatch when the valid count is not divisible by `minibatch_size`.
 
 The smoke configuration is a pipeline test only. It is not evidence of learning quality and cannot
 be included in v0.1 scientific results.
@@ -62,10 +67,10 @@ be included in v0.1 scientific results.
 
 One root training seed is expanded with BLAKE2b-based semantic labels; persistent seeds never use
 Python's process-randomized `hash()`. The current streams are `network/actor`, `network/critic`,
-`policy/sampling`, `environment/<environment-id>/episode/<episode-index>`, and
-`evaluation/<evaluation-index>`. An environment's next reset seed therefore depends only on its
-stable numeric slot and local episode counter, not worker scheduling or the order in which other
-environments finish.
+`policy/sampling`, `optimizer/shuffle`,
+`environment/<environment-id>/episode/<episode-index>`, and `evaluation/<evaluation-index>`. An
+environment's next reset seed therefore depends only on its stable numeric slot and local episode
+counter, not worker scheduling or the order in which other environments finish.
 
 Rollouts are synchronous and environment-major. Actor selection receives only encoded local
 observations and the movement/communication masks. Critic evaluation receives only the separately
@@ -76,4 +81,145 @@ seed history within the recorded software/platform determinism boundary.
 
 The `rollout-smoke` command reports tensor shapes, transition count, completed episode count, root
 seed, device, and reset seeds. It performs no optimization, writes no checkpoint, and is not a
-benchmark. GAE, PPO losses, gradient updates, and learning claims remain outside Day 2.
+benchmark.
+
+## Day 3 advantage and optimization semantics
+
+Rollout rewards, team values, terminal bootstrap values, and episode boundaries have shape
+`[T, E]`; GAE expands them over the stable active-agent axis to `[T, E, A]`. For active sample
+`(t, e, a)`, the temporal-difference residual is
+
+```text
+delta[t,e,a] = reward[t,e] + gamma * bootstrap[t,e] - value[t,e]
+```
+
+`bootstrap` is zero for a true termination and otherwise is the terminal next-state value captured
+before any reset. A truncation can therefore bootstrap its residual, but termination and truncation
+both stop the recursive advantage from crossing the episode boundary. The recurrence also stops at
+an explicit next-step episode start or inactive agent slot. Invalid slots remain zero. Value targets
+are `value + unnormalized_advantage`; optional advantage normalization uses only valid samples,
+population variance, and the configured epsilon, and never changes the value targets.
+
+The actor loss uses the joint factored log probability
+`log pi(move,message) = log pi(move) + log pi(message)`. With
+`ratio = exp(new_joint_log_probability - old_joint_log_probability)`, policy loss is the negative
+mean of the minimum of the ordinary and clipped advantage-weighted surrogates. The critic receives
+only centralized state features and uses `0.5 * mean((predicted_value - value_target)^2)`. The total
+loss is
+
+```text
+policy_loss + value_coefficient * value_loss - entropy_coefficient * joint_entropy
+```
+
+Only valid active-agent transitions enter any reduction. Diagnostics include factor and joint
+entropy, approximate KL `mean((ratio - 1) - log(ratio))`, clip fraction, mean ratio, valid count, and
+explained variance when target variance is meaningful.
+
+One Adam optimizer owns the disjoint actor and critic parameter sets. Every PPO epoch shuffles valid
+samples with the explicit `optimizer/shuffle` Torch generator, consumes all minibatches including an
+uneven last batch, clears gradients, backpropagates, validates finite gradients, clips the combined
+gradient norm, steps Adam, and validates all resulting parameters. Invalid shapes or masks, empty
+valid batches, non-finite inputs/log probabilities/advantages/returns/ratios/losses/gradients, and
+corrupted copied configuration fail with a typed training error rather than being skipped or
+clamped.
+
+`update-smoke` collects one configured rollout, computes GAE, performs the configured bounded PPO
+epochs, and requires both actor and critic parameters to change while remaining finite. Its output
+explicitly identifies an optimization smoke test, not a benchmark or evidence that useful behavior
+has been learned.
+
+## Day 4 checkpoint, resume, and evaluation semantics
+
+The full trainer advances only by `rollout_length * num_environments` joint environment steps. Each
+iteration collects one rollout, computes GAE, completes all configured PPO epochs, updates progress,
+optionally runs deterministic validation, writes the complete metric history atomically, and then
+publishes any scheduled checkpoint. A deliberately bounded `--stop-after-environment-steps` value
+must use the same rollout alignment and is labelled `bounded`, never complete.
+
+A checkpoint records actor and critic tensors, Adam state, environment-step/update/episode counters,
+all prior update records, both explicit Torch generator states, and each collector environment at the
+current transition boundary. Resume restores rather than reseeds or replays this state. It rejects
+changed training parameters, environment or validation contents, incompatible actor/critic/action
+signatures, misaligned counters, malformed metric history, and non-finite model or optimizer state.
+Deterministic equivalence is tested by comparing an uninterrupted run with a separately interrupted
+and resumed run, including model tensors, optimizer slots, collector state, RNG states, counters, and
+metrics.
+
+Scheduled validation and `evaluate-checkpoint` use masked deterministic actor inference from local
+observations only. The critic is not constructed for saved-checkpoint evaluation. The
+`compare-policies` workflow pairs random, frontier, untrained shared-actor, and checkpoint policies
+on the exact configured episode seeds; each policy receives its own complete artifact directory.
+Smoke training and validation remain pipeline evidence only.
+
+## Day 5 learning-evidence protocol
+
+Day 5 comparisons use only the declared validation partition and identical ordered seeds for every
+policy. The exact untrained actor is saved before collection or optimization; its named-tensor
+SHA-256 fingerprint must equal the recreated initialization used in policy comparison. Comparison
+artifacts record configuration fingerprints, model fingerprints, policy parameters, inference
+timing, aggregate summaries, and aligned per-seed episode rows. During tuning, `compare-policies`
+rejects the test partition unless a post-freeze caller explicitly authorizes it.
+
+Checkpoint selection is fixed before inspecting outcomes. Validation success rate is primary. Ties
+are resolved by higher exploration coverage, higher team efficiency, lower duplicated exploration,
+then shorter episode length. If all policies have zero success in this sparse task, exploration
+coverage is the predeclared secondary learning signal; target recovery, duplication, efficiency,
+communication, and return are checked for catastrophic regression and cannot be substituted after
+results are known. A checkpoint that improves this ordered validation key is atomically published
+as `best.pt`; the scheduled terminal checkpoint remains the `latest_checkpoint`.
+
+Training update records include movement and message action frequencies, communication selection
+rate, and factual warnings for near-zero gradients, KL above the configured PPO clipping
+coefficient, all-sample clipping, complete movement-action collapse, and always-silent or
+always-selected communication. These warnings diagnose behavior; they do not automatically alter
+training parameters.
+
+## Day 6 controlled multi-seed protocol
+
+Day 6 holds the Day 5 reward definition, optimizer, architecture, rollout structure, environment,
+and validation suite fixed. `mappo_day6_longer.yaml` changes only total environment steps, from
+4,096 to 16,384. With rollout length 64 and two environments, each root seed therefore performs
+128 rollout/update iterations and supplies 49,152 active-agent transitions. Checkpoints and
+validation remain scheduled every 2,048 environment transitions, producing eight aligned
+validation observations per seed. Based on the measured Day 5 duration of 91.17 seconds for 4,096
+steps, the pre-run estimate is approximately 365 seconds per seed, excluding initialization and
+separate comparisons. The controlled root seeds are exactly `0, 1, 2`; every policy comparison
+uses validation seeds `10000-10019`, and Day 6 commands reject the final-test partition.
+
+Training journals additionally record the rollout reward mean, population standard deviation,
+minimum, and maximum, plus selected, accepted, and rejected communication counts. Evaluation
+episode records distinguish accepted messages from rejected attempts. These are factual
+diagnostics only: simulator transitions, rewards, optimization, checkpoint selection, and policy
+inputs are unchanged.
+
+Multi-seed aggregation requires all three declared root-seed identities. A failed or missing seed
+cannot be silently omitted. Paired differences require identical root seed, seed partition, and
+ordered episode seeds. Candidate selection consumes validation metrics only. Its freeze record
+stores configuration, reward, environment, training-seed, and validation-seed identities; later
+mutation is detected by recomputing those fingerprints.
+
+## Day 8 one-time final evaluation semantics
+
+The final held-out workflow is governed by the byte-fingerprinted JSON preregistration. It verifies
+the frozen candidate, ordered policy set, exact initialization and best-checkpoint identities,
+declared test seeds, and both structural environment identities before it can claim the test
+partition. The claim is an exclusive `final_test_consumed.json` record created immediately before
+the first episode. Once that record exists, generic baseline, checkpoint, and policy-comparison
+commands reject the test partition. A post-claim failure remains recorded and does not silently
+authorize a rerun.
+
+Random and frontier are evaluated once per environment. Each of the three saved zero-step actors
+and three validation-selected Day 6 actors is evaluated with the same ordered test seeds on the
+reference and held-out structures. Neural action selection is deterministic masked argmax and uses
+only local observations. Checkpoint files plus actor, critic, and optimizer states are fingerprinted
+before and after; neural evaluation must also preserve Torch process RNG state. No optimizer is
+constructed or stepped.
+
+Episode records additionally expose completion progress, distinct targets observed,
+discovery-to-recovery conversion, blocked non-STAY movements, and agent-caused collision attempts.
+These are evaluator diagnostics derived from simulator snapshots and events; they do not enter
+policy observations or simulator transitions. A collision is a blocked attempt involving a
+contested destination or another agent's occupied position, covering contention, swaps, movement
+cycles, and occupied-agent dependency cascades while excluding wall, boundary, and obstacle blocks.
+Raw return remains a within-environment diagnostic and is not used as the primary cross-environment
+metric.

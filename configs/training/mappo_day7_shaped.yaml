@@ -1,0 +1,27 @@
+schema_version: 1
+algorithm: shared-actor-centralized-critic-ppo
+environment_config: ../environments/grid_rescue_day7_recovery.yaml
+validation_config: ../evaluation/training_validation.yaml
+network:
+  actor_hidden_sizes: [128, 128]
+  critic_hidden_sizes: [128, 128]
+  activation: tanh
+rollout_length: 64
+num_environments: 2
+ppo_epochs: 4
+minibatch_size: 128
+discount_factor: 0.99
+gae_lambda: 0.95
+normalize_advantages: true
+advantage_normalization_epsilon: 0.00000001
+clipping_coefficient: 0.2
+entropy_coefficient: 0.01
+value_coefficient: 0.5
+maximum_gradient_norm: 0.5
+learning_rate: 0.0003
+total_environment_steps: 16384
+checkpoint_frequency: 2048
+evaluation_frequency: 2048
+device: cpu
+deterministic_torch: true
+seed: 0

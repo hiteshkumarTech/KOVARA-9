@@ -9,9 +9,10 @@ from typing import Any, ClassVar
 import numpy as np
 from gymnasium import spaces
 from pettingzoo import ParallelEnv
+from pydantic import Field, ValidationError, model_validator
 
-from kovara9.config.models import EnvConfig
-from kovara9.core.errors import InvalidActionError
+from kovara9.config.models import EnvConfig, StrictModel
+from kovara9.core.errors import InvalidActionError, TrainingError
 from kovara9.core.seeding import derive_seed, make_rng
 from kovara9.core.types import MAX_AGENTS, AgentAction, AgentId, Move, Position, StepEvents
 from kovara9.environments.grid_rescue.generation import agent_slots, generate_world
@@ -21,9 +22,38 @@ from kovara9.environments.grid_rescue.observations import (
     build_central_state,
     build_observation,
 )
-from kovara9.environments.grid_rescue.state import WorldState
+from kovara9.environments.grid_rescue.state import (
+    CheckpointPosition,
+    WorldState,
+    WorldStateCheckpoint,
+)
 from kovara9.rendering.ansi import AnsiRenderer
 from kovara9.rendering.rgb_array import RgbArrayRenderer
+
+
+class StepEventsCheckpoint(StrictModel):
+    """Serializable simulator events needed for exact diagnostic continuity."""
+
+    recovered_targets: tuple[CheckpointPosition, ...]
+    messages_sent: int = Field(ge=0)
+    blocked_agents: tuple[AgentId, ...]
+    rejected_message_agents: tuple[AgentId, ...]
+
+
+class GridRescueEnvironmentCheckpoint(StrictModel):
+    """Complete state needed to resume one environment between transitions."""
+
+    schema_version: int = Field(default=1, ge=1, le=1)
+    episode_counter: int = Field(ge=0)
+    agents: tuple[AgentId, ...]
+    world: WorldStateCheckpoint
+    last_events: StepEventsCheckpoint
+
+    @model_validator(mode="after")
+    def validate_agent_uniqueness(self) -> GridRescueEnvironmentCheckpoint:
+        if len(set(self.agents)) != len(self.agents):
+            raise ValueError("checkpoint live-agent identifiers must be unique")
+        return self
 
 
 class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
@@ -238,6 +268,73 @@ class GridRescueParallelEnv(ParallelEnv):  # type: ignore[misc]
             self._possible_agents_tuple,
             self.agents,
         )
+
+    def checkpoint_state(self) -> dict[str, Any]:
+        """Export transition state for a trainer without coupling it to rendering."""
+
+        events = self.last_events
+        checkpoint = GridRescueEnvironmentCheckpoint(
+            episode_counter=self._episode_counter,
+            agents=tuple(self.agents),
+            world=self._require_state().checkpoint(),
+            last_events=StepEventsCheckpoint(
+                recovered_targets=tuple(
+                    CheckpointPosition.from_position(position)
+                    for position in events.recovered_targets
+                ),
+                messages_sent=events.messages_sent,
+                blocked_agents=events.blocked_agents,
+                rejected_message_agents=events.rejected_message_agents,
+            ),
+        )
+        return checkpoint.model_dump(mode="python")
+
+    def restore_checkpoint_state(
+        self,
+        raw_checkpoint: Mapping[str, Any],
+    ) -> dict[AgentId, dict[str, Any]]:
+        """Restore one validated transition boundary and return local observations."""
+
+        try:
+            checkpoint = GridRescueEnvironmentCheckpoint.model_validate(raw_checkpoint)
+        except ValidationError as exc:
+            raise TrainingError(f"invalid grid-rescue environment checkpoint: {exc}") from exc
+        if (
+            checkpoint.world.width != self.config.width
+            or checkpoint.world.height != self.config.height
+        ):
+            raise TrainingError("environment checkpoint dimensions do not match configuration")
+        possible_agents = set(self.possible_agents)
+        world_agents = set(checkpoint.world.agent_positions)
+        if world_agents != possible_agents:
+            raise TrainingError("environment checkpoint world agents do not match configuration")
+        if not set(checkpoint.agents).issubset(possible_agents):
+            raise TrainingError("environment checkpoint contains unknown live agents")
+        if checkpoint.world.step_count > self.config.max_steps:
+            raise TrainingError("environment checkpoint step count exceeds configured maximum")
+        maximum_message = (
+            self.config.communication.vocabulary_size if self.config.communication.enabled else 0
+        )
+        if any(
+            budget > self.config.communication.budget_per_agent
+            for budget in checkpoint.world.communication_budgets.values()
+        ):
+            raise TrainingError("environment checkpoint communication budget exceeds configuration")
+        if any(message > maximum_message for message in checkpoint.world.latest_messages.values()):
+            raise TrainingError("environment checkpoint message exceeds configured vocabulary")
+
+        self._episode_counter = checkpoint.episode_counter
+        self._state = WorldState.from_checkpoint(checkpoint.world)
+        self.agents = list(checkpoint.agents)
+        self.last_events = StepEvents(
+            recovered_targets=tuple(
+                position.to_position() for position in checkpoint.last_events.recovered_targets
+            ),
+            messages_sent=checkpoint.last_events.messages_sent,
+            blocked_agents=checkpoint.last_events.blocked_agents,
+            rejected_message_agents=checkpoint.last_events.rejected_message_agents,
+        )
+        return self._observations()
 
     def render(self) -> str | np.ndarray | None:
         """Render the current snapshot without changing simulator state."""

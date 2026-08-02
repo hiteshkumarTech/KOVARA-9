@@ -55,6 +55,13 @@ class RolloutEnvironment(Protocol):
 
     def state(self) -> dict[str, Any]: ...
 
+    def checkpoint_state(self) -> dict[str, Any]: ...
+
+    def restore_checkpoint_state(
+        self,
+        raw_checkpoint: Mapping[str, Any],
+    ) -> ObservationBatch: ...
+
     def close(self) -> None: ...
 
 
@@ -272,6 +279,110 @@ class SynchronousRolloutCollector:
 
         for environment in self.environments:
             environment.close()
+
+    def checkpoint_state(self) -> dict[str, Any]:
+        """Export every mutable collector stream at a rollout boundary."""
+
+        return {
+            "schema_version": 1,
+            "episode_indices": list(self._episode_indices),
+            "episode_lengths": list(self._episode_lengths),
+            "transition_ids": list(self._transition_ids),
+            "episode_start": list(self._episode_start),
+            "reset_seeds": [list(seeds) for seeds in self._reset_seeds],
+            "policy_generator_state": self.policy_generator.get_state().cpu(),
+            "environments": [environment.checkpoint_state() for environment in self.environments],
+        }
+
+    def restore_checkpoint_state(self, raw_checkpoint: Mapping[str, Any]) -> None:
+        """Restore a validated collector state without sampling or replaying actions."""
+
+        expected_keys = {
+            "schema_version",
+            "episode_indices",
+            "episode_lengths",
+            "transition_ids",
+            "episode_start",
+            "reset_seeds",
+            "policy_generator_state",
+            "environments",
+        }
+        if set(raw_checkpoint) != expected_keys:
+            raise TrainingError("collector checkpoint fields do not match schema version 1")
+        if raw_checkpoint["schema_version"] != 1:
+            raise TrainingError("unsupported collector checkpoint schema version")
+        count = self.spec.num_environments
+        episode_indices = self._checkpoint_int_list(
+            "episode_indices", raw_checkpoint["episode_indices"], count
+        )
+        episode_lengths = self._checkpoint_int_list(
+            "episode_lengths", raw_checkpoint["episode_lengths"], count
+        )
+        transition_ids = self._checkpoint_int_list(
+            "transition_ids", raw_checkpoint["transition_ids"], count
+        )
+        episode_start = self._checkpoint_bool_list(
+            "episode_start", raw_checkpoint["episode_start"], count
+        )
+        reset_seeds_raw = raw_checkpoint["reset_seeds"]
+        if not isinstance(reset_seeds_raw, list) or len(reset_seeds_raw) != count:
+            raise TrainingError("collector checkpoint reset_seeds has invalid shape")
+        reset_seeds = [
+            self._checkpoint_int_list(f"reset_seeds[{index}]", seeds, None)
+            for index, seeds in enumerate(reset_seeds_raw)
+        ]
+        if any(not seeds for seeds in reset_seeds):
+            raise TrainingError("collector checkpoint reset seed histories cannot be empty")
+        environments_raw = raw_checkpoint["environments"]
+        if not isinstance(environments_raw, list) or len(environments_raw) != count:
+            raise TrainingError("collector checkpoint environment state count is invalid")
+        if not all(isinstance(state, Mapping) for state in environments_raw):
+            raise TrainingError("collector checkpoint environment states must be mappings")
+        generator_state = raw_checkpoint["policy_generator_state"]
+        if (
+            not isinstance(generator_state, Tensor)
+            or generator_state.dtype != torch.uint8
+            or generator_state.ndim != 1
+        ):
+            raise TrainingError("collector checkpoint policy RNG state is invalid")
+
+        observations: list[ObservationBatch] = []
+        for environment, state in zip(self.environments, environments_raw, strict=True):
+            observations.append(environment.restore_checkpoint_state(state))
+        self._episode_indices = episode_indices
+        self._episode_lengths = episode_lengths
+        self._transition_ids = transition_ids
+        self._episode_start = episode_start
+        self._reset_seeds = reset_seeds
+        self._observations = observations
+        try:
+            self.policy_generator.set_state(generator_state.cpu())
+        except RuntimeError as exc:
+            raise TrainingError("cannot restore collector policy RNG state") from exc
+
+    @staticmethod
+    def _checkpoint_int_list(
+        name: str,
+        raw: Any,
+        expected_length: int | None,
+    ) -> list[int]:
+        if not isinstance(raw, list) or (
+            expected_length is not None and len(raw) != expected_length
+        ):
+            raise TrainingError(f"collector checkpoint {name} has invalid shape")
+        if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in raw):
+            raise TrainingError(f"collector checkpoint {name} must contain non-negative integers")
+        return list(raw)
+
+    @staticmethod
+    def _checkpoint_bool_list(name: str, raw: Any, expected_length: int) -> list[bool]:
+        if (
+            not isinstance(raw, list)
+            or len(raw) != expected_length
+            or any(not isinstance(value, bool) for value in raw)
+        ):
+            raise TrainingError(f"collector checkpoint {name} must contain booleans")
+        return list(raw)
 
     def _step_environments(
         self,

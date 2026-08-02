@@ -63,7 +63,12 @@ def _masked_factor(name: str, logits: Tensor, mask: Tensor) -> _MaskedFactor:
     log_normalizer = torch.logsumexp(masked_logits, dim=-1, keepdim=True)
     log_probabilities = masked_logits - log_normalizer
     probabilities = torch.exp(log_probabilities)
-    entropy_terms = torch.where(mask, probabilities * log_probabilities, 0.0)
+    finite_log_probabilities = torch.where(
+        mask,
+        log_probabilities,
+        torch.zeros_like(log_probabilities),
+    )
+    entropy_terms = probabilities * finite_log_probabilities
     entropy = -entropy_terms.sum(dim=-1)
     if not bool(torch.isfinite(probabilities).all()) or not bool(torch.isfinite(entropy).all()):
         raise NumericalError(f"{name} masked categorical produced non-finite statistics")

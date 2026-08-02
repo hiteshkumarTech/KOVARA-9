@@ -9,6 +9,7 @@ def test_semantic_seed_streams_are_repeatable_and_distinct() -> None:
     assert first.actor_initialization == second.actor_initialization
     assert first.critic_initialization == second.critic_initialization
     assert first.policy_sampling == second.policy_sampling
+    assert first.optimizer_shuffle == second.optimizer_shuffle
     assert first.environment_reset(0, 0) == second.environment_reset(0, 0)
     assert (
         len(
@@ -16,13 +17,14 @@ def test_semantic_seed_streams_are_repeatable_and_distinct() -> None:
                 first.actor_initialization,
                 first.critic_initialization,
                 first.policy_sampling,
+                first.optimizer_shuffle,
                 first.environment_reset(0, 0),
                 first.environment_reset(0, 1),
                 first.environment_reset(1, 0),
                 first.evaluation(0),
             }
         )
-        == 7
+        == 8
     )
 
 

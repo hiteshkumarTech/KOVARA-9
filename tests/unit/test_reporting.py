@@ -45,6 +45,7 @@ def _result(success: bool) -> EvaluationResult:
         exploration_coverage=0.5,
         duplicated_exploration=0.2,
         communication_messages=0,
+        communication_rejections=0,
         messages_per_agent_step=0,
         team_efficiency=0.1,
         shared_return=1,
