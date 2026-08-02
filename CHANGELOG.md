@@ -1,9 +1,13 @@
 # Changelog
 
 All notable changes to KOVARA-9 are documented here. The project follows semantic versioning once a
-release is tagged; Day 10 owns the final release decision.
+release is tagged. The `0.1.0` entry is prepared, but the tag and GitHub release remain owner actions.
 
 ## [Unreleased]
+
+No changes are currently assigned beyond the prepared v0.1.0 release.
+
+## [0.1.0] - 2026-08-02
 
 ### Added
 
@@ -13,6 +17,8 @@ release is tagged; Day 10 owns the final release decision.
 - Research summary, model/system card, reproducibility guide, limitations/future-work analysis, and
   portfolio metadata guidance.
 - Citation metadata and presentation-integrity tests.
+- Independent scientific audit, PR/release documents, repository-rename checklist, integration
+  procedure, release checklist, and final portfolio wording.
 
 ### Changed
 
@@ -36,4 +42,5 @@ release is tagged; Day 10 owns the final release decision.
   freeze, and one preregistered held-out evaluation.
 - Final result: partial exploration transfer, zero learned-policy task successes.
 
-The `v0.1.0` tag and release are intentionally deferred to the Day 10 independent audit.
+The `v0.1.0` tag and GitHub release must be created only after the owner completes the release
+checklist on the reviewed merged `main` commit.

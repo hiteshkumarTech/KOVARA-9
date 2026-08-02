@@ -182,6 +182,7 @@ Runs record resolved inputs, package/platform versions, Git state, seeds, finger
 checksums. Exact resume restores model, optimizer, collector, counters, histories, and explicit RNG
 states at rollout boundaries. See [the reproducibility guide](docs/reproducibility.md) for smoke,
 short-training, full Day 6, Windows temporary-directory, build, and final-results-inspection paths.
+The independent release-preparation evidence is in the [Day 10 final audit](docs/day10-final-audit.md).
 
 ## Installation
 
@@ -253,11 +254,12 @@ human interaction, or claims about physical robots. See the [model/system card](
 
 ## Roadmap
 
-Day 10 is limited to independent audit, PR/merge work, repository-name cleanup, release tagging,
-GitHub release preparation, and final portfolio wording. It must not change the frozen model or
-rerun the consumed test partition. Longer-term research candidates—requiring separate controlled
-experiments—include improved credit assignment, curricula, memory, and coordination mechanisms.
-None is assumed to solve the task. See the [roadmap](docs/roadmap.md).
+The Day 10 audit and release preparation are documented; the repository owner must still confirm
+CI, rename the GitHub repository, merge the reviewed pull request, tag the merged `main` commit, and
+publish the release. Longer-term research candidates—requiring separate controlled experiments and
+new untouched test data—include improved credit assignment, curricula, memory, and coordination
+mechanisms. None is assumed to solve the task. See the [roadmap](docs/roadmap.md) and
+[release checklist](docs/release-checklist.md).
 
 ## Citation
 
