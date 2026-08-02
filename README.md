@@ -47,6 +47,12 @@ model-selection inputs; it cannot consume final-test seeds.
 `config verify-candidate` recomputes the frozen candidate, reward, environment, and validation-seed
 identities and fails if any bound input has changed.
 
+`final-evaluate` is an irreversible, preregistration-locked workflow for the sole final held-out
+partition. It validates every declared checkpoint and protocol fingerprint, atomically records test
+consumption, evaluates the eight preregistered policies on aligned environments and seeds, and then
+verifies that checkpoint, actor, critic, optimizer, and RNG identities remain unchanged. After the
+partition is consumed, ordinary evaluation and tuning comparison commands refuse to reuse it.
+
 Structural-comparison evaluation files declare both reference and held-out environments; supplying
 `--env-config` for such a run is rejected to avoid conflicting experiment definitions.
 

@@ -37,6 +37,7 @@ from kovara9.experiments.day6 import (
     load_day6_training_inputs,
     validate_candidate_freeze,
 )
+from kovara9.experiments.day8 import reject_consumed_test_partition, run_final_evaluation
 from kovara9.reporting.artifacts import ArtifactWriter
 from kovara9.reporting.summaries import comparison_summary
 from kovara9.training.checkpoint import (
@@ -275,7 +276,7 @@ def verify_candidate(
         "candidate_freeze_verified",
         candidate=str(candidate),
         configuration_fingerprint=freeze.configuration_fingerprint,
-        test_partition_consumed=False,
+        test_partition_consumed=Path("configs/evaluation/final_test_consumed.json").is_file(),
     )
 
 
@@ -608,6 +609,7 @@ def evaluate(
 
     try:
         evaluation = load_evaluation_config(eval_config)
+        reject_consumed_test_partition(evaluation)
         environment, held_out_environment, environment_label = _evaluation_environments(
             evaluation, env_config
         )
@@ -657,6 +659,7 @@ def evaluate_checkpoint(
     try:
         loaded = load_training_checkpoint(checkpoint)
         evaluation = load_evaluation_config(eval_config)
+        reject_consumed_test_partition(evaluation)
         environment, held_out_environment, environment_label = _evaluation_environments(
             evaluation, env_config
         )
@@ -730,6 +733,7 @@ def compare_policies(  # noqa: PLR0913, PLR0917
     try:
         loaded = load_training_checkpoint(checkpoint)
         evaluation = load_evaluation_config(eval_config)
+        reject_consumed_test_partition(evaluation)
         if evaluation.seed_partition == "test" and not allow_test_partition:
             raise ConfigurationError(
                 "policy comparison refuses test seeds during tuning; "
@@ -841,6 +845,56 @@ def compare_policies(  # noqa: PLR0913, PLR0917
         "policy_comparison_complete",
         output=str(output),
         policies=sorted(summaries),
+    )
+
+
+@app.command("final-evaluate")
+def final_evaluate(  # noqa: PLR0913, PLR0917
+    candidate: Annotated[
+        Path, typer.Option("--candidate", exists=True, dir_okay=False, readable=True)
+    ],
+    freeze_record: Annotated[
+        Path, typer.Option("--freeze-record", exists=True, dir_okay=False, readable=True)
+    ],
+    eval_config: Annotated[
+        Path, typer.Option("--eval-config", exists=True, dir_okay=False, readable=True)
+    ],
+    preregistration: Annotated[
+        Path, typer.Option("--preregistration", exists=True, dir_okay=False, readable=True)
+    ],
+    preregistration_sha256: Annotated[str, typer.Option("--preregistration-sha256")],
+    artifact_root: Annotated[
+        Path, typer.Option("--artifact-root", exists=True, file_okay=False, readable=True)
+    ],
+    output: Annotated[Path, typer.Option("--output")],
+    consumed_record: Annotated[Path, typer.Option("--consumed-record")] = Path(
+        "configs/evaluation/final_test_consumed.json"
+    ),
+    device: Annotated[str, typer.Option("--device")] = "cpu",
+) -> None:
+    """Run the sole preregistered final held-out evaluation and consume its partition."""
+
+    try:
+        if device != "cpu":
+            raise ConfigurationError("the preregistered final evaluation requires device=cpu")
+        record = run_final_evaluation(
+            candidate_path=candidate,
+            freeze_path=freeze_record,
+            evaluation_path=eval_config,
+            preregistration_path=preregistration,
+            preregistration_sha256=preregistration_sha256,
+            artifact_root=artifact_root,
+            output=output,
+            consumed_record=consumed_record,
+            device_name=device,
+        )
+    except KovaraError as exc:
+        _abort(exc)
+    structlog.get_logger().info(
+        "final_evaluation_complete",
+        output=str(output),
+        policies=record["completed_policies"],
+        runtime_seconds=record["runtime_seconds"],
     )
 
 
