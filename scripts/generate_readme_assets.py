@@ -523,10 +523,8 @@ def generate_assets(output_dir: Path) -> dict[str, object]:
         },
     }
     manifest_path = output_dir / "readme-assets-manifest.json"
-   manifest_bytes = (
-    json.dumps(manifest, indent=2, sort_keys=True) + "\n"
-).encode("utf-8")
-manifest_path.write_bytes(manifest_bytes)
+    manifest_bytes = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    manifest_path.write_bytes(manifest_bytes)
     return manifest
 
 
