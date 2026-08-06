@@ -91,6 +91,13 @@ Policies implement an environment-independent protocol. Renderers consume immuta
 cannot advance the simulator. Evaluation orchestrates policies and environments, metrics consume
 recorded events, and reporting persists typed records.
 
+The packaged open-source demo composes those same boundaries rather than introducing a second
+simulator path. A strictly validated `DemoConfig` supplies the environment, baseline policy names,
+explicit seeds, seed partitions, and frame limit. Evaluation may publish defensive snapshots to an
+optional observer after reset and after each transition. The demo's ANSI adapter renders those
+copies after simulation; the observer cannot issue actions, access mutable environment state, or
+change metrics. Demo reports are derived from the same factual `EpisodeRecord` used by evaluation.
+
 Each decentralized observation contains the local grid, teammate token slots, the agent's remaining
 communication budget, and fixed-shape `move_action_mask` and `message_action_mask` arrays. Action
 spaces never change during an episode. A non-silent token selected after the budget reaches zero is

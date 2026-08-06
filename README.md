@@ -46,34 +46,48 @@ deterministic seed management, checkpointing and exact resume, scientific evalua
 baseline comparison, preregistration, negative-result reporting, test engineering, packaging, and
 continuous-integration configuration. See the suggested [repository metadata](docs/portfolio-metadata.md).
 
-## Five-minute quick start
+## Fast open-source demo
 
-Prerequisites: Python 3.12, [uv](https://docs.astral.sh/uv/), and PowerShell 5.1 or newer for the
-guided demo. CUDA and private credentials are not required.
+Prerequisites: Python 3.12 and [uv](https://docs.astral.sh/uv/). CUDA, PowerShell, downloaded
+checkpoints, private data, and credentials are not required.
+
+```console
+git clone <repository-url>
+cd KOVARA-9
+uv sync --locked
+uv run kovara9 demo
+```
+
+The packaged command runs two explicitly seeded examples in the real simulator: random behavior
+headlessly and the handcrafted frontier policy with an ANSI trace. Its validated YAML resource
+declares the environment, seeds, train/validation/test partitions, policies, and rendering cap. The
+demo performs no training, loads no checkpoint, never selects final-test seeds, and reports examples
+rather than benchmark estimates. It also works from an installed wheel without repository-relative
+configuration files.
+
+Validate without executing an episode, or save transparent deterministic artifacts:
+
+```console
+uv run kovara9 demo --validate-only
+uv run kovara9 demo --no-render --output runs/open-source-demo
+```
+
+See the [open-source demo guide](docs/open-source-demo.md) for its configuration and safety
+boundaries.
+
+## Five-minute evidence tour
+
+The existing PowerShell tour remains available for repository reviewers who want candidate-freeze
+verification, an untrained rollout smoke, deterministic regeneration of the six frozen result
+figures, and focused presentation-integrity tests:
 
 ```powershell
-git clone <repository-url>
-Set-Location KOVARA-9
-uv sync --locked
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_recruiter_demo.ps1
 ```
 
-The demo validates configuration, renders fixed-seed random and frontier episodes, runs an untrained
-rollout smoke, regenerates figures from the committed Day 8 JSON, verifies the frozen candidate and
-consumption lock, and displays the recorded quality summary. It never runs the final evaluation.
-Trained checkpoints are intentionally uncommitted; an optional trusted local checkpoint can be
-supplied with `-CheckpointPath`.
-
-For a platform-neutral first look:
-
-```console
-uv sync --locked
-uv run kovara9 config validate configs/environments/grid_rescue_easy.yaml
-uv run kovara9 env run --config configs/environments/grid_rescue_easy.yaml --agent frontier --seed 4243 --render ansi
-uv run python scripts/generate_result_figures.py
-```
-
-Detailed narration: [five-minute recruiter demo](docs/recruiter-demo.md).
+It never runs the final evaluation. Trained checkpoints are intentionally uncommitted; an optional
+trusted local checkpoint can be supplied with `-CheckpointPath`. Detailed narration:
+[five-minute recruiter demo](docs/recruiter-demo.md).
 
 ## Architecture
 
@@ -200,7 +214,8 @@ code-adjacent input.
 
 | Command | Purpose |
 |---|---|
-| `kovara9 config validate` | Validate environment, evaluation, or training YAML |
+| `kovara9 demo` | Run the fast packaged baseline walkthrough without training or final evaluation |
+| `kovara9 config validate` | Validate environment, evaluation, training, or demo YAML |
 | `kovara9 config verify-candidate` | Recompute the frozen candidate and bound fingerprints |
 | `kovara9 env run` | Run one rendered or headless baseline episode |
 | `kovara9 rollout-smoke` | Collect a short untrained rollout without optimization |
@@ -221,8 +236,9 @@ partition. No bypass command is documented.
 configs/           validated environment, evaluation, reward, and training protocols
 docs/              architecture, methodology, daily records, cards, and reproducibility guides
 docs/assets/       Mermaid sources and deterministic SVG result figures
-scripts/           figure generation and the PowerShell recruiter demo
+scripts/           frozen-result figure generation and the PowerShell evidence tour
 src/kovara9/       simulator, policies, learner, evaluator, reporting, and CLI
+src/kovara9/resources/  validated, wheel-packaged open-source demo configuration
 tests/             unit, property-oriented, integration, reproducibility, and integrity tests
 ```
 

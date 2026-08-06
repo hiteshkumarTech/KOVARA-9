@@ -21,6 +21,23 @@ uv run kovara9 --help
 
 Do not commit `.venv`, caches, run directories, checkpoints, coverage data, or build outputs.
 
+## Fast packaged walkthrough
+
+The cross-platform public entry point uses the validated configuration resource shipped in the
+wheel. Its two seeds (`4242` and `4243`) are explicitly members of the declared training domain and
+are disjoint from the validation and consumed final-test partitions:
+
+```console
+uv run kovara9 demo
+uv run kovara9 demo --validate-only
+uv run kovara9 demo --no-render --output runs/open-source-demo
+```
+
+The output directory contains the resolved demo YAML and a deterministic JSON report. ANSI frames
+are presentation-only and are deliberately excluded from the report. The command performs no
+optimization, loads no learned checkpoint, and does not invoke either ordinary or final evaluation
+suites. See the [open-source demo guide](open-source-demo.md).
+
 ## Determinism boundary
 
 KOVARA-9 derives independent BLAKE2b-based streams from each root seed for actor and critic

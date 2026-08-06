@@ -5,13 +5,14 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from kovara9.config.models import ComparisonConfig, EnvConfig, EvaluationConfig
+from kovara9.config.models import ComparisonConfig, DemoConfig, EnvConfig, EvaluationConfig
 from kovara9.core.errors import ConfigurationError
 from kovara9.training.config import TrainingConfig
 
@@ -25,21 +26,29 @@ class TrainingInputs:
     validation: EvaluationConfig
 
 
+def _parse[ConfigT: BaseModel](
+    text: str,
+    source: str | Path,
+    model_type: type[ConfigT],
+) -> ConfigT:
+    try:
+        raw: Any = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise ConfigurationError(f"invalid YAML in {source}: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise ConfigurationError(f"configuration {source} must contain a YAML mapping")
+    try:
+        return model_type.model_validate(raw)
+    except ValidationError as exc:
+        raise ConfigurationError(f"invalid configuration {source}:\n{exc}") from exc
+
+
 def _load[ConfigT: BaseModel](path: Path, model_type: type[ConfigT]) -> ConfigT:
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise ConfigurationError(f"cannot read configuration {path}: {exc}") from exc
-    try:
-        raw: Any = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
-        raise ConfigurationError(f"invalid YAML in {path}: {exc}") from exc
-    if not isinstance(raw, dict):
-        raise ConfigurationError(f"configuration {path} must contain a YAML mapping")
-    try:
-        return model_type.model_validate(raw)
-    except ValidationError as exc:
-        raise ConfigurationError(f"invalid configuration {path}:\n{exc}") from exc
+    return _parse(text, path, model_type)
 
 
 def load_environment_config(path: Path) -> EnvConfig:
@@ -72,6 +81,25 @@ def load_evaluation_config(path: Path) -> EvaluationConfig:
         held_out_environment=held_out_path,
     )
     return config.model_copy(update={"comparison": comparison})
+
+
+def load_demo_config(path: Path) -> DemoConfig:
+    """Load and validate a public-demo configuration."""
+
+    return _load(path, DemoConfig)
+
+
+def load_bundled_demo_config() -> DemoConfig:
+    """Load the validated demo definition shipped inside the Python package."""
+
+    source = "bundled kovara9/resources/open_source_demo.yaml"
+    try:
+        text = (
+            files("kovara9.resources").joinpath("open_source_demo.yaml").read_text(encoding="utf-8")
+        )
+    except (OSError, TypeError) as exc:
+        raise ConfigurationError(f"cannot read {source}: {exc}") from exc
+    return _parse(text, source, DemoConfig)
 
 
 def _resolve_config_path(path: Path, base_directory: Path) -> Path:

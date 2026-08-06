@@ -1,0 +1,37 @@
+schema_version: 1
+name: open-source-baseline-walkthrough
+environment:
+  schema_version: 1
+  environment_id: KovaraGridRescue-v0
+  width: 8
+  height: 8
+  num_agents: 2
+  obstacle_density: 0.10
+  observation_radius: 3
+  num_targets: 2
+  max_steps: 100
+  communication:
+    enabled: true
+    vocabulary_size: 4
+    budget_per_agent: 4
+  generation:
+    max_attempts: 128
+  reward:
+    target_recovery: 1.0
+    success_bonus: 5.0
+    step_penalty: -0.01
+    message_penalty: -0.001
+seed_partitions:
+  train: {start: 0, count: 10000}
+  validation: {start: 10000, count: 1000}
+  test: {start: 20000, count: 1000}
+episodes:
+  - name: seeded-random-example
+    policy: random
+    seed: 4242
+    render: false
+  - name: handcrafted-frontier-example
+    policy: frontier
+    seed: 4243
+    render: true
+frame_capture_limit: 101

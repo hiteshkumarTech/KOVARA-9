@@ -6,6 +6,8 @@
    training pipeline. The learned candidate did not achieve full task completion.
 3. **Phase 2 — completed once for v0.1:** preregistered held-out seed and structural evaluation,
    classified as exploration transfer without task completion.
+   The v0.2 open-source-demo engineering track adds a packaged cross-platform baseline walkthrough
+   and public-workflow hardening without changing this evidence or starting a new learning study.
 4. **Phase 3:** communication ablations, dynamic roles, teammate failure, and imitation learning.
 5. **Phase 4:** broader environments and advanced multi-agent research.
 6. **Phase 5:** optional 3D visualization adapter demonstrating already validated behavior.

@@ -10,6 +10,12 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { file = "LICENSE" }
 authors = [{ name = "KOVARA-9 Contributors" }]
+keywords = [
+  "multi-agent reinforcement learning",
+  "PettingZoo",
+  "procedural generation",
+  "reproducible research",
+]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",
@@ -28,6 +34,11 @@ dependencies = [
   "torch>=2.7,<3",
   "typer>=0.16,<1",
 ]
+
+[project.urls]
+Documentation = "https://github.com/hiteshkumarTech/KOVARA-9#readme"
+Issues = "https://github.com/hiteshkumarTech/KOVARA-9/issues"
+Repository = "https://github.com/hiteshkumarTech/KOVARA-9"
 
 [project.scripts]
 kovara9 = "kovara9.cli:app"

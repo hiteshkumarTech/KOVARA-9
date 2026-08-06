@@ -23,6 +23,7 @@ from kovara9.evaluation.metrics import (
 from kovara9.evaluation.records import EpisodeRecord, EvaluationSummary
 
 PolicyFactory = Callable[[], Policy]
+SnapshotObserver = Callable[[WorldSnapshot], None]
 
 
 def collision_blocked_agents(
@@ -125,17 +126,20 @@ def _visible_reachable_cells(
     return cells
 
 
-def run_episode(
+def run_episode(  # noqa: PLR0915
     *,
     env_config: EnvConfig,
     seed: int,
     policy_factory: PolicyFactory,
     inference_timer: _InferenceTimer | None = None,
+    snapshot_observer: SnapshotObserver | None = None,
 ) -> EpisodeRecord:
     """Run one episode and calculate metrics from factual simulator state."""
 
     env = GridRescueParallelEnv(env_config)
     observations, _infos = env.reset(seed=seed)
+    if snapshot_observer is not None:
+        snapshot_observer(env.snapshot)
     policies = {agent: policy_factory() for agent in env.possible_agents}
     for slot, agent in enumerate(env.possible_agents):
         policies[agent].reset(
@@ -170,6 +174,7 @@ def run_episode(
             if inference_timer is not None:
                 inference_timer.observe(perf_counter_ns() - started)
         observations, rewards, terminations, truncations, infos = env.step(actions)
+        post_step_snapshot = env.snapshot
         blocked_agents = {agent for agent in acting_agents if bool(infos[agent]["blocked"])}
         blocked_movements += sum(
             agent in blocked_agents and Move(actions[agent]["move"]) is not Move.STAY
@@ -196,12 +201,18 @@ def run_episode(
                 info=policy_info,
             )
         for agent in acting_agents:
-            visible = _visible_reachable_cells(env.snapshot, agent, env_config.observation_radius)
+            visible = _visible_reachable_cells(
+                post_step_snapshot,
+                agent,
+                env_config.observation_radius,
+            )
             observed[agent].update(visible)
-            observed_targets.update(visible.intersection(env.snapshot.targets))
+            observed_targets.update(visible.intersection(post_step_snapshot.targets))
         success = any(terminations.values())
         if success:
             termination_reason = "success"
+        if snapshot_observer is not None:
+            snapshot_observer(env.snapshot)
 
     final_snapshot = env.snapshot
     reachable = int((~final_snapshot.obstacles).sum())
