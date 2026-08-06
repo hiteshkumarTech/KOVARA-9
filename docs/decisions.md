@@ -94,3 +94,17 @@ unbounded action history.
 **Trade-off:** checkpoints contain training-only critic and simulator state in addition to the actor.
 Saved-policy evaluation loads the actor separately and validates only decentralized
 observation/action compatibility.
+
+## ADR-010: packaged baseline walkthrough
+
+**Decision:** expose a fast `kovara9 demo` command backed by a validated YAML resource inside the
+wheel. It runs only the existing random and handcrafted frontier policies on explicit training-domain
+seeds. ANSI frames consume defensive snapshots through an evaluation observer.
+
+**Rationale:** the v0.1 evidence tour is PowerShell-first and repository-relative. A prospective
+contributor should be able to verify real simulator behavior from any supported terminal or from an
+installed wheel without a checkpoint, private artifact, training run, or final-test access.
+
+**Trade-off:** two fixed episodes are illustrative examples, not baseline estimates. The longer
+PowerShell evidence tour remains the workflow for freeze checks, frozen-figure regeneration, and
+presentation-integrity tests.

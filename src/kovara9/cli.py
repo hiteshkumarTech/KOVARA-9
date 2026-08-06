@@ -16,12 +16,14 @@ from kovara9.agents.random import RandomPolicy
 from kovara9.config.loader import (
     TrainingInputs,
     configuration_fingerprint,
+    load_bundled_demo_config,
     load_comparison_environment_configs,
+    load_demo_config,
     load_environment_config,
     load_evaluation_config,
     load_training_inputs,
 )
-from kovara9.config.models import EnvConfig, EvaluationConfig
+from kovara9.config.models import DemoConfig, EnvConfig, EvaluationConfig
 from kovara9.core.errors import (
     ArtifactError,
     ConfigurationError,
@@ -30,6 +32,7 @@ from kovara9.core.errors import (
     TrainingError,
 )
 from kovara9.core.seeding import derive_seed
+from kovara9.demo import DemoRun, run_demo, write_demo_artifacts
 from kovara9.environments.grid_rescue.environment import GridRescueParallelEnv
 from kovara9.evaluation.runner import EvaluationResult, PolicyFactory, evaluate_policy
 from kovara9.experiments.day6 import (
@@ -226,9 +229,9 @@ def _make_rollout_collector(
 def validate_config(
     path: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
 ) -> None:
-    """Validate an environment or evaluation YAML configuration."""
+    """Validate an environment, evaluation, training, or demo YAML configuration."""
 
-    config: EnvConfig | EvaluationConfig | TrainingConfig
+    config: DemoConfig | EnvConfig | EvaluationConfig | TrainingConfig
     try:
         try:
             config = load_environment_config(path)
@@ -237,8 +240,12 @@ def validate_config(
             try:
                 evaluation = load_evaluation_config(path)
             except KovaraError:
-                config = load_training_inputs(path).training
-                kind = "training"
+                try:
+                    config = load_training_inputs(path).training
+                    kind = "training"
+                except KovaraError:
+                    config = load_demo_config(path)
+                    kind = "demo"
             else:
                 config = evaluation
                 if config.comparison is not None:
@@ -251,6 +258,100 @@ def validate_config(
         path=str(path),
         kind=kind,
         schema_version=config.schema_version,
+    )
+
+
+def _print_demo_run(run: DemoRun) -> None:
+    typer.echo("KOVARA-9 open-source baseline walkthrough")
+    typer.echo("Real simulator transitions; no training, checkpoint, or final evaluation.")
+    for episode in run.episodes:
+        if episode.frames:
+            typer.echo(
+                f"\n{episode.specification.name} "
+                f"({episode.specification.policy}, seed={episode.specification.seed})"
+            )
+            for index, frame in enumerate(episode.frames):
+                typer.echo(f"\nframe {index}")
+                typer.echo(frame)
+            if episode.frames_truncated:
+                typer.echo("\nAdditional frames omitted by the configured capture limit.")
+    typer.echo("\nDemo summary (two examples, not benchmark estimates)")
+    for episode in run.episodes:
+        record = episode.record
+        typer.echo(
+            f"- {episode.specification.policy}: seed={record.seed}, success={record.success}, "
+            f"targets={record.targets_recovered}/{record.total_targets}, "
+            f"steps={record.episode_length}"
+        )
+
+
+@app.command("demo")
+def open_source_demo(
+    config_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--config",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            help="Optional validated demo YAML; defaults to the packaged walkthrough.",
+        ),
+    ] = None,
+    render: Annotated[
+        bool,
+        typer.Option("--render/--no-render", help="Show configured ANSI episode frames."),
+    ] = True,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", help="New directory for resolved YAML and deterministic JSON."),
+    ] = None,
+    validate_only: Annotated[
+        bool,
+        typer.Option("--validate-only", help="Validate inputs without running an episode."),
+    ] = False,
+) -> None:
+    """Run a fast packaged baseline walkthrough; never train or use final-test seeds."""
+
+    try:
+        config = (
+            load_bundled_demo_config() if config_path is None else load_demo_config(config_path)
+        )
+        fingerprint = configuration_fingerprint(config)
+        if validate_only:
+            structlog.get_logger().info(
+                "open_source_demo_valid",
+                configuration_fingerprint=fingerprint,
+                episode_seeds=[episode.seed for episode in config.episodes],
+                seed_partition="train",
+                training_performed=False,
+                final_evaluation_performed=False,
+            )
+            return
+        run = run_demo(config, capture_frames=render)
+        if output is not None:
+            write_demo_artifacts(output, config, run)
+    except KovaraError as exc:
+        _abort(exc)
+    _print_demo_run(run)
+    structlog.get_logger().info(
+        "open_source_demo_complete",
+        classification="behavioral_walkthrough_not_benchmark",
+        configuration_fingerprint=run.configuration_fingerprint,
+        output=None if output is None else str(output),
+        training_performed=False,
+        final_evaluation_performed=False,
+        learned_checkpoint_loaded=False,
+        episodes=[
+            {
+                "policy": episode.specification.policy,
+                "seed": episode.record.seed,
+                "success": episode.record.success,
+                "targets_recovered": episode.record.targets_recovered,
+                "total_targets": episode.record.total_targets,
+                "steps": episode.record.episode_length,
+            }
+            for episode in run.episodes
+        ],
     )
 
 

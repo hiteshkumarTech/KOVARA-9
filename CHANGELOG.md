@@ -5,7 +5,28 @@ release is tagged. The `0.1.0` entry is prepared, but the tag and GitHub release
 
 ## [Unreleased]
 
-No changes are currently assigned beyond the prepared v0.1.0 release.
+### Added
+
+- A fast, cross-platform `kovara9 demo` command that runs from the repository or an installed wheel.
+- A wheel-packaged, strictly validated demo definition with explicit environment parameters,
+  baseline policies, seed partitions, episode seeds, and frame limits.
+- Deterministic resolved-YAML and JSON demo artifacts, with collision-safe output handling.
+- Unit and integration coverage for demo reproducibility, partition safety, packaging, CLI behavior,
+  and honest non-benchmark classification.
+
+### Changed
+
+- Evaluation can expose defensive post-transition snapshots through an optional observer adapter;
+  rendering remains unable to mutate or advance simulator state.
+- CI now validates the packaged demo entry point in addition to formatting, linting, typing, tests,
+  and builds.
+- Project metadata now declares repository, documentation, issue, and discovery links/keywords.
+
+### Scientific status
+
+- This is an engineering and presentation workflow only. It adds no learning algorithm, training
+  run, benchmark, candidate selection, or new scientific result.
+- The v0.1 frozen results, candidate identities, and consumed final-test record are unchanged.
 
 ## [0.1.0] - 2026-08-02
 

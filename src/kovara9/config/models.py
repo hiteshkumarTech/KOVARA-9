@@ -153,6 +153,43 @@ class SeedPartitionsConfig(StrictModel):
         return self.test.resolved_seeds
 
 
+class DemoEpisodeConfig(StrictModel):
+    """One explicitly seeded baseline episode in the public walkthrough."""
+
+    name: str = Field(min_length=1, max_length=100)
+    policy: Literal["random", "frontier"]
+    seed: int = Field(ge=0)
+    render: bool
+
+
+class DemoConfig(StrictModel):
+    """Bounded, non-benchmark configuration for the packaged public demo."""
+
+    schema_version: int = Field(default=1, ge=1, le=1)
+    name: str = Field(min_length=1, max_length=100)
+    environment: EnvConfig
+    seed_partitions: SeedPartitionsConfig
+    episodes: tuple[DemoEpisodeConfig, ...] = Field(min_length=2, max_length=16)
+    frame_capture_limit: int = Field(ge=1, le=1_000)
+
+    @model_validator(mode="after")
+    def validate_walkthrough(self) -> Self:
+        names = tuple(episode.name for episode in self.episodes)
+        if len(set(names)) != len(names):
+            raise ValueError("demo episode names must be unique")
+        seeds = tuple(episode.seed for episode in self.episodes)
+        if len(set(seeds)) != len(seeds):
+            raise ValueError("demo episode seeds must be unique")
+        policies = {episode.policy for episode in self.episodes}
+        if policies != {"random", "frontier"}:
+            raise ValueError("demo must include both random and frontier baseline policies")
+        training_seeds = self.seed_partitions.train.resolved_seeds
+        outside = [seed for seed in seeds if seed not in training_seeds]
+        if outside:
+            raise ValueError(f"demo seeds are outside the declared train partition: {outside}")
+        return self
+
+
 class ComparisonConfig(StrictModel):
     """Two environment configurations used for a structural comparison."""
 
