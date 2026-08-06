@@ -1,0 +1,87 @@
+name: Bug report
+description: Report a reproducible defect in the package, CLI, simulator, or documentation.
+title: "bug: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve KOVARA-9. Remove credentials, private paths, and sensitive data from logs.
+  - type: input
+    id: operating_system
+    attributes:
+      label: Operating system
+      description: Include the OS name, version, and architecture.
+      placeholder: Windows 11 24H2, x86-64
+    validations:
+      required: true
+  - type: input
+    id: python_version
+    attributes:
+      label: Python version
+      placeholder: Python 3.12.13
+    validations:
+      required: true
+  - type: input
+    id: kovara9_version
+    attributes:
+      label: KOVARA-9 version or commit
+      placeholder: 0.1.0 or git commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation method
+      options:
+        - uv sync --locked
+        - uv pip install -e .
+        - Installed wheel
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command
+      description: Paste the complete command that reproduces the problem.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: config_and_seed
+    attributes:
+      label: Configuration and seed
+      description: Link or paste the relevant config and include every explicit seed. Remove secrets.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or traceback
+      description: Remove credentials, private data, and sensitive local paths before posting.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: I did not rerun or tune against the consumed v0.1.0 final-test partition.
+          required: true
+        - label: I removed credentials and private data from this report.
+          required: true

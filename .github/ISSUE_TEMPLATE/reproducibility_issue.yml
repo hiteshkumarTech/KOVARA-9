@@ -1,0 +1,70 @@
+name: Reproducibility issue
+description: Report a deterministic replay, artifact, fingerprint, or documented-result mismatch.
+title: "reproducibility: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not rerun the consumed v0.1.0 final-test workflow. Report evidence mismatches without changing frozen artifacts.
+  - type: input
+    id: platform
+    attributes:
+      label: OS, architecture, and Python
+      placeholder: Ubuntu 24.04, x86-64, Python 3.12.13
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: KOVARA-9 version or commit
+      placeholder: 0.1.0 or full commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: installation
+    attributes:
+      label: Installation and dependency state
+      description: Include the installation command and whether the lockfile was used.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: Configuration, fingerprint, and seeds
+      description: Include paths, recorded fingerprints, seed partition, and explicit seeds.
+    validations:
+      required: true
+  - type: textarea
+    id: expected_evidence
+    attributes:
+      label: Expected evidence
+      description: Link the repository artifact or documentation statement you expected to match.
+    validations:
+      required: true
+  - type: textarea
+    id: observed_evidence
+    attributes:
+      label: Observed evidence
+      description: Include hashes, differing fields, and sanitized logs. Do not upload private run data.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Final-test safety
+      options:
+        - label: I did not bypass the final-test consumption lock.
+          required: true
+        - label: I did not modify or regenerate frozen v0.1.0 results.
+          required: true
+        - label: I removed credentials and private data from logs.
+          required: true

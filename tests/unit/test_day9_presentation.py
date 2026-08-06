@@ -271,7 +271,11 @@ def test_citation_cff_parses_and_makes_no_publication_claim() -> None:
     assert citation["type"] == "software"
     assert citation["version"] == "0.1.0"
     assert citation["license"] == "Apache-2.0"
-    assert citation["authors"] == [{"name": "KOVARA-9 Contributors"}]
+    assert citation["authors"] == [
+        {"family-names": "Kumar", "given-names": "Hitesh"},
+        {"name": "KOVARA-9 Contributors"},
+    ]
+    assert citation["repository-code"] == "https://github.com/hiteshkumarTech/KOVARA-9"
     assert "doi" not in citation
 
 

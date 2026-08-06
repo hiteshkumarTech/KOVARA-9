@@ -79,3 +79,19 @@ state is never passed to a policy.
 For the longer repository evidence workflow—including frozen-candidate verification, rollout smoke,
 frozen-result figure regeneration, and presentation-integrity tests—use the
 [five-minute recruiter demo](recruiter-demo.md).
+
+## README visual assets
+
+The repository's demo frame and GIF are generated from the same real frontier episode with seed
+`4243`. The policy comparison is derived read-only from the frozen Day 8 JSON. The social preview is
+original explanatory branding and contains no empirical metrics.
+
+```console
+uv run python scripts/generate_readme_assets.py
+```
+
+The generator uses no visualization dependency beyond the installed project. It writes PNG and GIF
+files with a small built-in raster encoder and records source hashes, asset hashes, the demo outcome,
+and the explicit `final_test_seed_used: false` field in
+[`assets/readme-assets-manifest.json`](assets/readme-assets-manifest.json). Generating twice from the
+same source files produces byte-identical assets.

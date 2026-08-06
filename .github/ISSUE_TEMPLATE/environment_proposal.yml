@@ -1,0 +1,63 @@
+name: Environment proposal
+description: Propose an environment or external-simulation adapter before implementation.
+title: "environment: "
+labels: []
+body:
+  - type: textarea
+    id: research_question
+    attributes:
+      label: Research question
+      description: What coordination or generalization question would this environment answer?
+    validations:
+      required: true
+  - type: textarea
+    id: simulation
+    attributes:
+      label: Environment or simulation
+      description: Describe the system, license, availability, and why an adapter is appropriate.
+    validations:
+      required: true
+  - type: textarea
+    id: mappings
+    attributes:
+      label: Observation and action mapping
+      description: Define local observations, legal actions, masks, agent identity, and termination behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: information_boundary
+    attributes:
+      label: Decentralized and centralized information boundary
+      description: State exactly what each actor sees and what is reserved for metrics or CTDE training.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducibility
+    attributes:
+      label: Reproducibility plan
+      description: Explain seed ownership, procedural partitions, fingerprints, and deterministic replay.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Invariants and tests
+      description: List transition, property, adapter, workflow, and reproducibility tests.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Dependencies, trade-offs, and non-goals
+      description: Include dependency weight, maintenance cost, and features that remain out of scope.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Proposal checks
+      options:
+        - label: I understand that this proposal does not mean the environment is already integrated.
+          required: true
+        - label: The proposal preserves simulator/rendering and policy/environment separation.
+          required: true

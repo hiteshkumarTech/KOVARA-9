@@ -4,8 +4,13 @@ type: software
 title: "KOVARA-9: a reproducible multi-agent reinforcement-learning research platform"
 version: 0.1.0
 authors:
+  - family-names: "Kumar"
+    given-names: "Hitesh"
   - name: "KOVARA-9 Contributors"
 license: Apache-2.0
+date-released: 2026-08-02
+repository-code: "https://github.com/hiteshkumarTech/KOVARA-9"
+url: "https://github.com/hiteshkumarTech/KOVARA-9"
 abstract: >-
   A reproducible multi-agent reinforcement-learning research platform for cooperative
   exploration and procedural-environment generalization. The v0.1 frozen policies

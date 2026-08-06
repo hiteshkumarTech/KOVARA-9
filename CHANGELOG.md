@@ -1,7 +1,8 @@
 # Changelog
 
-All notable changes to KOVARA-9 are documented here. The project follows semantic versioning once a
-release is tagged. The `0.1.0` entry is prepared, but the tag and GitHub release remain owner actions.
+All notable changes to KOVARA-9 are documented here. The project follows semantic versioning for
+tagged releases. Version 0.1.0 is published; current documentation and demo improvements remain
+unreleased.
 
 ## [Unreleased]
 
@@ -13,6 +14,10 @@ release is tagged. The `0.1.0` entry is prepared, but the tag and GitHub release
 - Deterministic resolved-YAML and JSON demo artifacts, with collision-safe output handling.
 - Unit and integration coverage for demo reproducibility, partition safety, packaging, CLI behavior,
   and honest non-benchmark classification.
+- Original repository branding, a real safe-seed demo animation and frame, a frozen-data-derived
+  policy chart, and a social preview with deterministic provenance.
+- A documentation index, cross-platform troubleshooting, external-adapter guidance, GitHub settings,
+  project copy, issue forms, pull-request template, support guide, and code of conduct.
 
 ### Changed
 
@@ -21,6 +26,8 @@ release is tagged. The `0.1.0` entry is prepared, but the tag and GitHub release
 - CI now validates the packaged demo entry point in addition to formatting, linting, typing, tests,
   and builds.
 - Project metadata now declares repository, documentation, issue, and discovery links/keywords.
+- The README now leads with a working quick start, a visual walkthrough, the verified negative result,
+  architecture diagrams, limitations, and clear routes for users and contributors.
 
 ### Scientific status
 
@@ -63,5 +70,5 @@ release is tagged. The `0.1.0` entry is prepared, but the tag and GitHub release
   freeze, and one preregistered held-out evaluation.
 - Final result: partial exploration transfer, zero learned-policy task successes.
 
-The `v0.1.0` tag and GitHub release must be created only after the owner completes the release
-checklist on the reviewed merged `main` commit.
+The `v0.1.0` tag and GitHub release are the frozen public record. No `v0.2.0` tag or release is part of
+the Unreleased documentation and demo work above.

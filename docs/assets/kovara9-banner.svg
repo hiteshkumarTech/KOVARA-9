@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">KOVARA-9</title>
+  <desc id="desc">Reproducible multi-agent reinforcement learning for cooperative exploration in procedural environments.</desc>
+  <rect width="1200" height="300" rx="20" fill="#07111f"/>
+  <rect x="24" y="24" width="1152" height="252" rx="12" fill="#0d1b2a" stroke="#29445f" stroke-width="2"/>
+
+  <g fill="none" stroke="#29445f" stroke-width="1.5" opacity="0.9">
+    <path d="M850 55v190M900 55v190M950 55v190M1000 55v190M1050 55v190M1100 55v190"/>
+    <path d="M825 80h300M825 130h300M825 180h300M825 230h300"/>
+  </g>
+  <g fill="none" stroke="#4dd0e1" stroke-width="3">
+    <path d="M875 105l125 50 75-50M1000 155l75 50"/>
+  </g>
+  <g stroke="#f4f7fb" stroke-width="3">
+    <rect x="862" y="92" width="26" height="26" rx="4" fill="#4f8cff"/>
+    <rect x="1062" y="92" width="26" height="26" rx="4" fill="#ffb74d"/>
+    <rect x="987" y="142" width="26" height="26" rx="4" fill="#4dd0e1"/>
+    <rect x="1062" y="192" width="26" height="26" rx="4" fill="#67d391"/>
+  </g>
+
+  <text x="72" y="126" fill="#f4f7fb"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        font-size="70" font-weight="700" letter-spacing="5">KOVARA-9</text>
+  <rect x="76" y="146" width="460" height="6" fill="#4dd0e1"/>
+  <text x="76" y="190" fill="#4dd0e1"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        font-size="19" font-weight="600" letter-spacing="1">REPRODUCIBLE MULTI-AGENT RL</text>
+  <text x="76" y="224" fill="#f4f7fb"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        font-size="19">COOPERATIVE EXPLORATION IN PROCEDURAL ENVIRONMENTS</text>
+</svg>

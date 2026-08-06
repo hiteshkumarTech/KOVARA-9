@@ -1,0 +1,51 @@
+{
+  "assets": {
+    "demo-frame.png": {
+      "bytes": 3560,
+      "sha256": "f0ca5c402e91ceccb6804caee154a9710ff0d66ef1ab3cf6eb168a93986d3dd0"
+    },
+    "demo-frontier.gif": {
+      "bytes": 65391,
+      "sha256": "d4ddb14716f927544de6723ceb1b29988846c6db7c681ecb707eab424c49590b"
+    },
+    "kovara9-social-preview.png": {
+      "bytes": 10077,
+      "sha256": "c2a8518e284f530a2c67e15fecdf4e9050700f6234bed55a13695b06c2e162f9"
+    },
+    "policy-comparison.png": {
+      "bytes": 5900,
+      "sha256": "a8538f7bf0db7aff6767a3709b217e301df3e34472e121c47a7f56f521b44ca3"
+    }
+  },
+  "comparison": {
+    "classification": "exploration_transfer_without_task_completion",
+    "purpose": "derived visualization of frozen v0.1.0 held-out results",
+    "success_rates": {
+      "frontier": 0.855,
+      "random": 0.14,
+      "trained_mean": 0.0,
+      "untrained_mean": 0.0
+    }
+  },
+  "demo": {
+    "final_test_seed_used": false,
+    "frames": 10,
+    "label": "handcrafted-frontier-example",
+    "policy": "frontier",
+    "purpose": "behavioral walkthrough; not a benchmark estimate",
+    "seed": 4243,
+    "seed_partition": "train/development",
+    "steps": 9,
+    "success": true,
+    "target_count": 2,
+    "targets_recovered": 2
+  },
+  "generator": "scripts/generate_readme_assets.py",
+  "schema_version": 1,
+  "sources": {
+    "demo_config": "src/kovara9/resources/open_source_demo.yaml",
+    "demo_config_sha256": "35371e96ba1b05a1206e3e7e52a965e6918fac663fa9d3cc70e0e1d652dc6fd6",
+    "frozen_results": "docs/day8-final-heldout-results.json",
+    "frozen_results_sha256": "4d9de7d35a2cbee5660ad2d21982ad8706f3ba52b85263fd9ab988aea615a2fd"
+  }
+}

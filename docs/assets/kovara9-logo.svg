@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">KOVARA-9 logo</title>
+  <desc id="desc">Two agents connected through a procedural grid, forming a compact K9 mark.</desc>
+  <rect width="256" height="256" rx="40" fill="#07111f"/>
+  <path d="M40 40h176v176H40zM84 40v176M128 40v176M172 40v176M40 84h176M40 128h176M40 172h176"
+        fill="none" stroke="#29445f" stroke-width="2"/>
+  <path d="M69 72l58 57 59-51M127 129l58 56" fill="none" stroke="#4dd0e1" stroke-width="5"/>
+  <rect x="55" y="58" width="28" height="28" rx="5" fill="#4f8cff"/>
+  <circle cx="69" cy="72" r="5" fill="#f4f7fb"/>
+  <rect x="172" y="64" width="28" height="28" rx="5" fill="#ffb74d"/>
+  <circle cx="186" cy="78" r="5" fill="#f4f7fb"/>
+  <rect x="113" y="115" width="28" height="28" rx="5" fill="#4dd0e1"/>
+  <circle cx="127" cy="129" r="5" fill="#f4f7fb"/>
+  <rect x="171" y="171" width="28" height="28" rx="5" fill="#67d391"/>
+  <circle cx="185" cy="185" r="5" fill="#f4f7fb"/>
+  <text x="52" y="199" fill="#f4f7fb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        font-size="39" font-weight="700" letter-spacing="2">K9</text>
+</svg>
