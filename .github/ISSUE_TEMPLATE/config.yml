@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support and usage guidance
+    url: https://github.com/hiteshkumarTech/KOVARA-9/blob/main/.github/SUPPORT.md
+    about: Read the support guide before opening a usage question.
+  - name: Security policy
+    url: https://github.com/hiteshkumarTech/KOVARA-9/security/policy
+    about: Report suspected vulnerabilities privately; do not open a public security issue.

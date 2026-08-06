@@ -1,0 +1,60 @@
+name: Feature request
+description: Propose a bounded improvement tied to a concrete user or research need.
+title: "feature: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        KOVARA-9 intentionally avoids broad feature growth. Explain the problem, evidence, and scientific boundary before proposing implementation.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Who is blocked, and what workflow cannot be completed today?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or motivating example
+      description: Provide a minimal example, issue link, or reproducible observation. Do not invent metrics.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the smallest useful interface or behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Architecture and scientific boundaries
+      description: Explain policy/environment separation, observation access, configuration, and seed handling.
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: What should explicitly remain out of scope?
+    validations:
+      required: true
+  - type: textarea
+    id: testing
+    attributes:
+      label: Verification plan
+      description: List unit, property, integration, typing, lint, or documentation checks.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Integrity checks
+      options:
+        - label: This request does not claim unavailable checkpoints, metrics, or integrations.
+          required: true
+        - label: I reviewed the roadmap and searched existing issues.
+          required: true

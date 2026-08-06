@@ -1,7 +1,8 @@
 # KOVARA-9 v0.1.0 release checklist
 
-This checklist prepares the release but does not claim that a merge, repository rename, tag, or
-GitHub release has occurred.
+> **Historical record:** the repository owner subsequently completed the rename, merge, `v0.1.0`
+> tag, and public GitHub release. The unchecked boxes below preserve the pre-release review template;
+> they are not a statement that the current release is pending.
 
 ## 1. Final branch audit
 

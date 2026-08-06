@@ -6,16 +6,17 @@
    training pipeline. The learned candidate did not achieve full task completion.
 3. **Phase 2 — completed once for v0.1:** preregistered held-out seed and structural evaluation,
    classified as exploration transfer without task completion.
-   The v0.2 open-source-demo engineering track adds a packaged cross-platform baseline walkthrough
-   and public-workflow hardening without changing this evidence or starting a new learning study.
-4. **Phase 3:** communication ablations, dynamic roles, teammate failure, and imitation learning.
-5. **Phase 4:** broader environments and advanced multi-agent research.
-6. **Phase 5:** optional 3D visualization adapter demonstrating already validated behavior.
+4. **Open-source workflow — implemented under Unreleased:** packaged cross-platform baseline demo,
+   visual documentation, public onboarding, and repository-quality hardening. This track adds no
+   learning study or scientific claim.
+5. **Future research — decision required:** communication ablations, dynamic roles, teammate failure,
+   imitation learning, broader environments, or another algorithm each require approved scope and a
+   fresh preregistered evaluation plan.
 
-Each phase requires measured evidence before the next adds complexity.
+Each research phase requires measured evidence before the next adds complexity. New work must not
+reuse the consumed v0.1.0 final-test partition.
 
-The Day 10 repository audit and release preparation are complete when
-[`day10-final-audit.md`](day10-final-audit.md) is marked passed. Owner-managed PR integration,
-repository rename, tag, and release steps remain in the
-[`release-checklist.md`](release-checklist.md). New learning research begins after v0.1 and must not
-reuse the consumed final-test partition.
+The v0.1.0 result, audit, repository rename, tag, and GitHub release are complete. The v0.2
+open-source workflow and GitHub presentation work remain under `Unreleased` until reviewed. See the
+[release checklist](release-checklist.md) for the historical v0.1.0 process and the
+[decision log](decisions.md) for approved trade-offs.

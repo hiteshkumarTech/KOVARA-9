@@ -6,6 +6,52 @@ The diagrams below are documentation views of the implemented subsystem boundari
 sources live under [`docs/assets/`](assets/) so reviewers can inspect or reuse them without a binary
 diagram tool.
 
+### Training and evaluation flow
+
+```mermaid
+flowchart LR
+    ENV[Procedural environment] --> OBS[Per-agent observations]
+    OBS --> ACTOR[Shared actor]
+    ACTOR --> ACTIONS[Decentralized actions]
+    ACTIONS --> ENV
+    ENV -. centralized state during training only .-> CRITIC[Centralized critic]
+    CRITIC -. optimization signal .-> ACTOR
+    ACTOR --> CKPT[Frozen checkpoint]
+    CKPT --> EVAL[Held-out evaluation]
+    EVAL --> RESULTS[Structured results]
+```
+
+The checkpoint node describes the training/evaluation workflow. The public demo does not load a
+checkpoint and is not benchmark evidence.
+
+### Package architecture
+
+```mermaid
+flowchart LR
+    CLI[CLI] --> CONFIG[Validated configuration]
+    CONFIG --> ENVIRONMENT[Environment]
+    ENVIRONMENT --> POLICIES[Policies and baselines]
+    POLICIES --> RUNNER[Evaluation runner]
+    RUNNER --> ARTIFACTS[YAML, JSON, and reports]
+    ENVIRONMENT --> SNAPSHOT[Immutable snapshots]
+    SNAPSHOT --> RENDERERS[Optional renderers]
+```
+
+### Reuse from an external project
+
+```mermaid
+flowchart LR
+    SIM[External simulation] --> ADAPTER[Environment adapter]
+    ADAPTER --> MAP[Observation and action mapping]
+    MAP --> POLICY[KOVARA Policy protocol]
+    POLICY --> WORKFLOW[Training or evaluation workflow]
+    WORKFLOW --> EVIDENCE[Structured artifacts]
+```
+
+This last diagram is an explanatory integration concept, not a claim that a specific external
+simulation is already supported. The adapter must preserve local policy observations and explicit
+seed control.
+
 ### System architecture
 
 ```mermaid
@@ -186,5 +232,5 @@ configuration proves pipeline and resume correctness only; it is not evidence of
 - New environments implement the same parallel environment and snapshot boundaries.
 - New policies implement `Policy`; they do not import grid-rescue internals.
 - Future trainers implement `Trainer` and own algorithm-specific dependencies.
-- A future 3D viewer implements `Renderer` or consumes recorded snapshots without modifying
+- A future renderer implements `Renderer` or consumes recorded snapshots without modifying
   simulator dynamics.
